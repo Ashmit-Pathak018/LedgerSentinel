@@ -20,25 +20,23 @@ python eval/run.py --live --base http://localhost:8080 --label rehearsal
 Expect `8/8` decisions. If anything else, do not go on stage with the console; fall back to
 the eval table (it is the same evidence, printed).
 
-Open **`http://localhost:5176/#app`**. The console is now behind a login (b847259). With no
-`web/.env` present the app runs **demo-mode auth**: the modal says so in amber, and any
-username of 3+ characters with any password signs you in. Type `yashraj` / anything, click
-the modal's **Sign In**, then click **Launch Console** (login does not jump in by itself).
-"Remember this device" is ticked by default, so the second run skips the modal entirely - do
-the login once during setup, not on stage.
+Open **`http://localhost:5176/#app`**. The console is behind a login (b847259), and on the
+demo machine it is **real Supabase auth**: `web/.env` holds the project URL and publishable
+key (both public by design), `003_profiles.sql` is applied, and the analyst account exists -
+username **`yashraj`**, confirmed, profile row `Yashraj Kanawade · Fraud Operations Lead`,
+which is what the sidebar shows. Type the username and password, click the modal's
+**Sign In**, then **Launch Console** (login does not jump in by itself). "Remember this
+device" is ticked by default, so the second run skips the modal - **log in once during setup,
+not on stage.**
 
 Then click **Transactions** in the sidebar and leave it there. Do **not** open the floating
 "Interactive Demo" sparkle, and do not touch the **← Product Page** button in the top bar
 mid-demo. See *Hazards*.
 
-**Real Supabase auth (optional, only if you want the KYC story to be live).** It needs three
-things, in order, and it is off until all three are done: run `db/migrations/003_profiles.sql`
-in the Supabase SQL editor (creates `profiles` and the `auth.users` trigger - it is not
-applied yet), create the demo analyst's account under Authentication → Users with
-*auto-confirm* ticked (Supabase requires email confirmation by default and you do not want
-that on stage), then rename `web/.env.real` → `web/.env` and restart Vite. That file already
-holds the project URL and the publishable key, both of which are public by design. Rehearse
-the real login once before trusting it. To fall back, rename the file away again.
+**If auth misbehaves on the day**, rename `web/.env` to anything else and restart Vite. With no
+`.env` the app runs demo-mode auth - the modal says so in amber and any 3+ character username
+with any password signs you in. Ten seconds, no code change. On a fresh laptop that never had
+the `.env`, that is the mode you will get, so copy `web/.env` across with the repo.
 
 The **PRISM Observability** screen reads PRISM through the API, so it needs the network and
 `api/.env` to hold the PRISM key. If PRISM is unreachable the screen says so in amber and the
