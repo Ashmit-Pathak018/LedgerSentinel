@@ -4,7 +4,10 @@
     "value": 0.91,
     "confidence": 0.91,
     "source_ref": "fixture",
-    "evidence_span": {"start": 0, "end": 45},
+    "evidence_span": [
+      0,
+      45
+    ],
     "redacted_quote": "you must transfer the amount immediately or your account will be ***"
   },
   {
@@ -12,7 +15,10 @@
     "value": 0.85,
     "confidence": 0.85,
     "source_ref": "fixture",
-    "evidence_span": {"start": 50, "end": 110},
+    "evidence_span": [
+      50,
+      110
+    ],
     "redacted_quote": "this is officer *** from the RBI fraud prevention department"
   },
   {
@@ -20,7 +26,10 @@
     "value": 0.88,
     "confidence": 0.88,
     "source_ref": "fixture",
-    "evidence_span": {"start": 120, "end": 180},
+    "evidence_span": [
+      120,
+      180
+    ],
     "redacted_quote": "transfer your funds to this safe account *** for protection"
   },
   {
@@ -28,7 +37,10 @@
     "value": 0.72,
     "confidence": 0.72,
     "source_ref": "fixture",
-    "evidence_span": {"start": 200, "end": 260},
+    "evidence_span": [
+      200,
+      260
+    ],
     "redacted_quote": "do not tell anyone about this call it is a confidential investigation"
   },
   {
@@ -36,7 +48,10 @@
     "value": 0.79,
     "confidence": 0.79,
     "source_ref": "fixture",
-    "evidence_span": {"start": 270, "end": 330},
+    "evidence_span": [
+      270,
+      330
+    ],
     "redacted_quote": "if you do not comply we will be forced to freeze all your accounts and issue an arrest warrant"
   },
   {
@@ -44,7 +59,10 @@
     "value": 0.65,
     "confidence": 0.65,
     "source_ref": "fixture",
-    "evidence_span": {"start": 340, "end": 380},
+    "evidence_span": [
+      340,
+      380
+    ],
     "redacted_quote": "please share the OTP you just received on ***"
   }
 ]

@@ -1,7 +1,7 @@
 {
   "label": "v2",
   "mode": "in-process",
-  "timestamp": "2026-09-14T08:35:46.689126+00:00",
+  "timestamp": "2026-09-14T08:42:50.983582+00:00",
   "policy_version": "policy-1.2",
   "cohort": [
     "S01",
@@ -38,7 +38,7 @@
       "risk_score": 92,
       "critical_evidence_present": true,
       "high_impact": true,
-      "latency_ms": 0.05360000068321824,
+      "latency_ms": 0.036999990697950125,
       "model_calls": 2,
       "policy_version": "policy-1.2"
     },
@@ -63,7 +63,7 @@
       "risk_score": 66,
       "critical_evidence_present": false,
       "high_impact": false,
-      "latency_ms": 0.020599982235580683,
+      "latency_ms": 0.015199999324977398,
       "model_calls": 2,
       "policy_version": "policy-1.2"
     },
@@ -90,7 +90,7 @@
       "risk_score": 98,
       "critical_evidence_present": true,
       "high_impact": true,
-      "latency_ms": 0.015900004655122757,
+      "latency_ms": 0.01279998105019331,
       "model_calls": 1,
       "policy_version": "policy-1.2"
     },
@@ -115,7 +115,7 @@
       "risk_score": 34,
       "critical_evidence_present": false,
       "high_impact": false,
-      "latency_ms": 0.012700038496404886,
+      "latency_ms": 0.008400005754083395,
       "model_calls": 1,
       "policy_version": "policy-1.2"
     },
@@ -140,7 +140,7 @@
       "risk_score": 38,
       "critical_evidence_present": false,
       "high_impact": false,
-      "latency_ms": 0.00879995059221983,
+      "latency_ms": 0.005999987479299307,
       "model_calls": 1,
       "policy_version": "policy-1.2"
     },
@@ -165,7 +165,7 @@
       "risk_score": 58,
       "critical_evidence_present": false,
       "high_impact": true,
-      "latency_ms": 0.01179997343569994,
+      "latency_ms": 0.007800001185387373,
       "model_calls": 2,
       "policy_version": "policy-1.2"
     },
@@ -189,7 +189,7 @@
       "risk_score": 41,
       "critical_evidence_present": false,
       "high_impact": false,
-      "latency_ms": 0.012500036973506212,
+      "latency_ms": 0.008700008038431406,
       "model_calls": 1,
       "policy_version": "policy-1.2"
     },
@@ -214,7 +214,7 @@
       "risk_score": 74,
       "critical_evidence_present": false,
       "high_impact": false,
-      "latency_ms": 0.010699965059757233,
+      "latency_ms": 0.007499998901039362,
       "model_calls": 1,
       "policy_version": "policy-1.2"
     }

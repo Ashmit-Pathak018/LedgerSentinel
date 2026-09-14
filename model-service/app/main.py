@@ -52,6 +52,8 @@ app.include_router(voice.router, prefix="/model")
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
+# contracts/ENDPOINTS.md specifies /model/health; /health kept for convenience.
+@app.get("/model/health")
 @app.get("/health")
 async def health():
     settings = get_settings()

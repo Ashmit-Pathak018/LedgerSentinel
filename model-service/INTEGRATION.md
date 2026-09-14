@@ -1,5 +1,9 @@
 # Integration fixes for model-service
 
+> **STATUS: applied 2026-09-14.** All four are done and the compat shim in `api/models_client.py`
+> has been removed. `fixture_signals.json` now parses 6/6 against the frozen contract with no
+> coercion. Kept as the record of what changed and why.
+
 **For Ashmit.** The service is good work — structure, calibration, prompts, provenance, contract
 tests all solid, and nothing in it emits an action, which is the rule that mattered most.
 

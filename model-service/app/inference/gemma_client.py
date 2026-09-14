@@ -74,6 +74,10 @@ def _parse_signal_json(raw: str) -> list[dict[str, Any]]:
                     item["confidence"] = float(item["confidence"])
                 except ValueError:
                     pass
+            raw_span = item.get("evidence_span")
+            if isinstance(raw_span, (list, tuple)) and len(raw_span) == 2:
+                # The contract shape. Normalise to the internal object.
+                item["evidence_span"] = {"start": raw_span[0], "end": raw_span[1]}
             if "evidence_span" in item and isinstance(item["evidence_span"], dict):
                 span = item["evidence_span"]
                 for k in ["start", "end"]:

@@ -1,14 +1,15 @@
 """Model-service boundary tests.
 
-Two groups here, and they have opposite lifetimes.
+  Rule 1 tests      A model must never emit an action, and this is where that is enforced on
+                    the wire - including through envelope unwrapping.
 
-  Rule 1 tests      permanent. A model must never emit an action, and this is where that is
-                    enforced on the wire.
+  Envelope tests    model-service returns {signals, model_version, redaction_ran} rather than
+                    the bare array the contract specifies. Its version is better, so we read it
+                    without depending on it pending team agreement.
 
-  COMPAT tests      temporary, and deliberately so. They pin the coercions in models_client
-                    that paper over drift between model-service and contracts/. When Ashmit
-                    lands the upstream fixes these go RED - that is the signal to delete both
-                    the shim and these tests, not to loosen them.
+  Regression        evidence_span must stay contract-shaped. There used to be a coercion here
+                    for the object form, pinned by a test that asserted the drift was STILL
+                    present so it would go red once fixed. It did, and the shim came out.
 
     cd api && pytest tests/test_models_client.py -v
 """
@@ -69,16 +70,9 @@ def test_unrecognised_shape_raises():
         _parse("not a list or envelope")
 
 
-# ------------------------------------------------------------------ COMPAT (delete me)
+# ------------------------------------------------------------------ envelope handling
 
-def test_compat_object_span_is_coerced():
-    """model-service sends {"start":…, "end":…}; the contract says [start, end)."""
-    out = _parse([{"signal_type": "urgency", "value": 0.9, "confidence": 0.8,
-                   "source_ref": "c1", "evidence_span": {"start": 3, "end": 12}}])
-    assert out[0].evidence_span == (3, 12)
-
-
-def test_compat_envelope_is_unwrapped_and_model_version_folded_down():
+def test_envelope_is_unwrapped_and_model_version_folded_down():
     out = _parse({"signals": [{"signal_type": "threat", "value": 0.7, "confidence": 0.6,
                                "source_ref": "c2"}],
                   "model_version": "gemma3n-e4b@test",
@@ -86,18 +80,15 @@ def test_compat_envelope_is_unwrapped_and_model_version_folded_down():
     assert out[0].model_version == "gemma3n-e4b@test"
 
 
-def test_compat_unmodelled_fields_are_dropped_not_fatal():
+def test_unmodelled_fields_are_dropped_not_fatal():
     out = _parse([{"signal_type": "urgency", "value": 0.9, "confidence": 0.8,
                    "source_ref": "c1", "something_new": 42}])
     assert len(out) == 1
 
 
 @pytest.mark.skipif(not HIS_FIXTURES.exists(), reason="model-service fixtures not present")
-def test_the_real_model_service_fixtures_parse_through_the_shim():
-    """The end-to-end proof: Ashmit's actual output reaches the API as valid Signals.
-
-    Without the shim every one of these fails on evidence_span.
-    """
+def test_the_real_model_service_fixtures_parse():
+    """End-to-end proof: model-service's actual output reaches the API as valid Signals."""
     raw = json.loads(HIS_FIXTURES.read_text(encoding="utf-8"))
     if isinstance(raw, dict):
         raw = raw.get("signals") or next(v for v in raw.values() if isinstance(v, list))
@@ -112,21 +103,23 @@ def test_the_real_model_service_fixtures_parse_through_the_shim():
 
 
 @pytest.mark.skipif(not HIS_FIXTURES.exists(), reason="model-service fixtures not present")
-def test_upstream_still_needs_fixing():
-    """Fails once model-service emits contract shapes - which is the point.
+def test_model_service_emits_contract_shaped_spans():
+    """Regression guard, and the successor to the shim.
 
-    When this goes red: delete the COMPAT block in models_client.py and every test in this
-    section. Do not loosen the assertion to keep it green.
+    This used to be test_upstream_still_needs_fixing, asserting the drift was still there so it
+    would go red once fixed. It did, the shim came out, and this is what replaced it: spans must
+    stay contract-shaped.
     """
     raw = json.loads(HIS_FIXTURES.read_text(encoding="utf-8"))
     if isinstance(raw, dict):
         raw = raw.get("signals") or next(v for v in raw.values() if isinstance(v, list))
 
-    object_spans = [r for r in raw if isinstance(r.get("evidence_span"), dict)]
-    assert object_spans, (
-        "model-service now emits contract-shaped evidence_span. Delete the COMPAT shim in "
-        "models_client.py and the COMPAT tests in this file."
-    )
+    for r in raw:
+        span = r.get("evidence_span")
+        assert not isinstance(span, dict), (
+            f"{r.get('signal_type')}: evidence_span regressed to an object. "
+            "The contract specifies [start, end)."
+        )
 
 
 def test_mock_mode_is_the_default():

@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     CALIBRATION_SCALER_PATH: str = "calibration/scaler.pkl"
 
     # ── Server ────────────────────────────────────────────────────────────────
-    PORT: int = 8001
+    PORT: int = 8000   # contracts/ENDPOINTS.md
     LOG_LEVEL: str = "info"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}

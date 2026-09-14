@@ -65,7 +65,7 @@ For each detected signal, return one JSON object:
   "value": <score 0.0–1.0, two decimal places>,
   "confidence": <same as value — raw model confidence before calibration>,
   "source_ref": "{source_ref}",
-  "evidence_span": {{"start": <char_start>, "end": <char_end>}},
+  "evidence_span": [<char_start>, <char_end>],
   "redacted_quote": "<direct quote, max 25 words, replace any PII with ***>"
 }}
 

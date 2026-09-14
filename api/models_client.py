@@ -1,4 +1,4 @@
-"""Client for the model service, with a fixture-backed mock and a compatibility shim.
+"""Client for the model service, with a fixture-backed mock.
 
 MODELS_MOCK=true serves signals straight from contracts/fixtures/ and never touches the model
 service. Keep that path working for the whole build - it is how the other lanes stay unblocked,
@@ -9,10 +9,15 @@ Two jobs beyond fetching:
   Rule 1 on the wire.  A response carrying an action field is rejected, not parsed. Models emit
                        evidence; only the policy gate decides.
 
-  Compatibility.       The model service currently emits a couple of shapes that differ from the
-                       frozen contract. Rather than block integration, we normalise at this
-                       boundary and log loudly. See COMPAT below - every one of those coercions
-                       should be deleted once model-service is emitting contract shapes.
+  Compatibility.       The model service returns an envelope rather than the bare array the
+                       contract specifies. Its envelope is the better design - it carries
+                       model_version (rule 8) and redaction_ran (rule 6 evidence) - so we read
+                       it without depending on it, pending team agreement to adopt it into
+                       contracts/.
+
+                       The evidence_span coercion that used to live here is gone: model-service
+                       now emits [start, end) directly. That is what the self-deleting test in
+                       tests/test_models_client.py was for.
 """
 
 from __future__ import annotations
@@ -53,19 +58,13 @@ def mock_enabled() -> bool:
     return os.getenv("MODELS_MOCK", "true").lower() in {"1", "true", "yes"}
 
 
-# --------------------------------------------------------------------------- COMPAT
-#
-# Temporary coercions for drift between model-service and contracts/. Each one is a bug
-# upstream, not a feature here. tests/test_models_client.py asserts they still fire, so when
-# Ashmit lands the fixes those tests go red and you delete the shim.
-
 _warned: set[str] = set()
 
 
 def _warn_once(key: str, msg: str) -> None:
     if key not in _warned:
         _warned.add(key)
-        log.warning("COMPAT SHIM: %s", msg)
+        log.warning("wire compat: %s", msg)
 
 
 def _unwrap(body) -> tuple[list[dict], dict]:
@@ -92,19 +91,6 @@ def _unwrap(body) -> tuple[list[dict], dict]:
 def _normalise(item: dict, meta: dict) -> dict:
     """Coerce one raw signal into the frozen Signal shape."""
     item = dict(item)
-
-    # evidence_span: the contract says [start, end); the service sends {"start":…, "end":…}.
-    span = item.get("evidence_span")
-    if isinstance(span, dict):
-        _warn_once(
-            "span",
-            'evidence_span arrived as {"start":…, "end":…}; the contract specifies [start, end). '
-            "Coercing. Fix in model-service so this shim can be deleted.",
-        )
-        if "start" in span and "end" in span:
-            item["evidence_span"] = [span["start"], span["end"]]
-        else:
-            item["evidence_span"] = None
 
     # model_version lives on the envelope rather than each signal. Rule 8 wants it on the
     # record, so fold it down.
