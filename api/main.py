@@ -29,6 +29,7 @@ from contracts import (
 
 import fusion
 import models_client
+import store as store_mod
 from policy.gate import evaluate
 from policy.thresholds import DEFAULT, POLICY_VERSION
 from redaction import redact
@@ -42,9 +43,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory stores. Phase 4 swaps these for Supabase; the shape stays the same.
-AUDIT: list[dict] = []
-DECISIONS: dict[str, dict] = {}
+# Supabase when SUPABASE_URL is set, in-memory otherwise. See store.py.
+STORE = store_mod.get_store()
 
 
 class AnalyzeRequest(BaseModel):
@@ -77,6 +77,7 @@ def health() -> dict:
         "status": "ok",
         "policy_version": POLICY_VERSION,
         "models_mock": models_client.mock_enabled(),
+        "store": STORE.backend,
         "models": models,
     }
 
@@ -140,7 +141,7 @@ def analyze(req: AnalyzeRequest) -> dict:
     )
 
     # 4. Audit. Written on every decision, from the very first commit (rule 8).
-    AUDIT.append(
+    STORE.append_audit(
         {
             "event_id": f"evt_{uuid.uuid4().hex[:8]}",
             "actor": "system",
@@ -160,15 +161,27 @@ def analyze(req: AnalyzeRequest) -> dict:
         "evidence": [e.model_dump(mode="json") for e in evidence],
         "signals": [s.model_dump(mode="json") for s in signals],
     }
-    DECISIONS[req.transaction_id] = payload
+    STORE.save_analysis(req.transaction_id, payload)
+
+    # Anything that stopped the transaction becomes a case a human can pick up.
+    if action.type.pauses_transaction:
+        STORE.open_case(
+            {
+                "case_id": f"case_{uuid.uuid4().hex[:8]}",
+                "transaction_id": req.transaction_id,
+                "decision_id": decision.decision_id,
+                "status": "open",
+            }
+        )
     return payload
 
 
 @app.get("/v1/transactions/{transaction_id}")
 def get_transaction(transaction_id: str) -> dict:
-    if transaction_id not in DECISIONS:
+    found = STORE.get_analysis(transaction_id)
+    if found is None:
         raise HTTPException(404, f"No analysis for {transaction_id}")
-    return DECISIONS[transaction_id]
+    return found
 
 
 @app.get("/v1/transactions/{transaction_id}/evidence")
@@ -178,7 +191,33 @@ def get_evidence(transaction_id: str) -> list[dict]:
 
 @app.get("/v1/audit")
 def get_audit() -> list[dict]:
-    return AUDIT
+    return STORE.list_audit()
+
+
+@app.get("/v1/cases")
+def get_cases(status: str | None = None) -> list[dict]:
+    return STORE.list_cases(status)
+
+
+@app.get("/v1/consent/{customer_id}")
+def get_consent(customer_id: str) -> dict:
+    return {"customer_id": customer_id, "channels": STORE.get_consent(customer_id)}
+
+
+class ConsentUpdate(BaseModel):
+    channel: str
+    granted: bool
+
+
+@app.patch("/v1/consent/{customer_id}")
+def set_consent(customer_id: str, body: ConsentUpdate) -> dict:
+    """Revoking must actually cut off access, not just hide a button.
+
+    The next analysis for this customer will skip the revoked channel, and by rule 5 the
+    resulting loss of context lowers confidence - which moves the decision UP the ladder.
+    """
+    STORE.set_consent(customer_id, body.channel, body.granted)
+    return {"customer_id": customer_id, "channels": STORE.get_consent(customer_id)}
 
 
 def _policy_input(assessment, high_impact: bool, time_pressure: bool):
