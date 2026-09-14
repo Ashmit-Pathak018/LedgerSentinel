@@ -286,7 +286,44 @@ export const InvestigationView: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'Evidence' && (
+          {activeTab === 'Evidence' && activeTransaction.evidence && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
+              <h3 className="text-base font-semibold text-slate-900">
+                Evidence Behind This Assessment
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Three sources, fused into one assessment: what was said in the customer's communications,
+                what the account itself knows about the counterparty, and whether a published fraud advisory
+                describes this exact pattern. Only redacted excerpts are shown; no message body is stored.
+              </p>
+              <div className="divide-y divide-slate-100 text-xs pt-2">
+                {activeTransaction.evidence.map((e) => (
+                  <div key={e.id} className="py-3 flex items-start gap-3">
+                    <span className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-md font-mono text-[10px] uppercase tracking-wide ${
+                      e.sourceType === 'advisory' ? 'bg-purple-50 text-purple-700' :
+                      e.sourceType === 'transaction' ? 'bg-sky-50 text-sky-700' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {e.sourceType}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-slate-800">{e.claim}</div>
+                      <div className="text-slate-400 font-mono text-[11px] mt-1">
+                        {e.id} · {e.sourceRef} · confidence {e.confidence}%
+                      </div>
+                    </div>
+                    {e.critical && (
+                      <span className="shrink-0 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-semibold text-[10px] uppercase tracking-wide">
+                        Critical
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Evidence' && !activeTransaction.evidence && (
             <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
               <h3 className="text-base font-semibold text-slate-900">
                 Multi-Modal Evidence Fusion
@@ -338,7 +375,42 @@ export const InvestigationView: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'Policy Decision' && (
+          {/* Live rows carry the gate's real rule trace; the static block below stays for the
+              mock walkthrough, which has no API decision behind it. */}
+          {activeTab === 'Policy Decision' && activeTransaction.rationaleRefs && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs space-y-4 text-xs">
+              <h3 className="text-base font-semibold text-slate-900">Deterministic Policy Rule Trace</h3>
+              <p className="text-slate-600">
+                Every rule that fired proposed an action and the most restrictive won. Where evidence
+                forced the outcome, the gate cites the evidence itself, not only the rule that noticed it.
+              </p>
+              <div className="bg-slate-900 text-slate-200 p-4 rounded-lg font-mono text-xs overflow-x-auto space-y-1">
+                <div className="text-slate-400">
+                  {activeTransaction.policyVersion} · risk_score = {activeTransaction.riskScore} · confidence = {activeTransaction.confidence}%
+                </div>
+                {activeTransaction.rationaleRefs.map((ref) => (
+                  <div key={ref} className={ref.startsWith('ev_') ? 'text-amber-300' : 'text-emerald-400'}>
+                    {ref.startsWith('ev_') ? 'CITES  ' : 'FIRED  '}{ref}
+                  </div>
+                ))}
+                <div className="text-purple-400 font-bold pt-1">THEN ACTION = '{activeTransaction.action}'</div>
+              </div>
+              {activeTransaction.factors && (
+                <div>
+                  <div className="font-semibold text-slate-800 mb-1.5">Risk factors the assessment recorded</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeTransaction.factors.map((f) => (
+                      <span key={f} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px]">
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'Policy Decision' && !activeTransaction.rationaleRefs && (
             <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs space-y-4 text-xs">
               <h3 className="text-base font-semibold text-slate-900">Deterministic Policy Rule Trace</h3>
               <p className="text-slate-600">

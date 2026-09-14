@@ -143,6 +143,19 @@ export function toTransaction(res: AnalyzeResponse, req: AnalyzeRequest): Transa
     policyVersion: decision.policy_version,
     modelVersion: assessment.model_version,
     criticalEvidenceCount: evidence.filter((e) => e.critical).length,
+    // The gate's own account of itself. Without these the Policy Decision tab showed a
+    // hardcoded HOLD rule under a header that said ESCALATE - the one screen a judge opens to
+    // check that the gate cites evidence, showing a rule that does not exist.
+    rationaleRefs: [...decision.rationale_refs],
+    factors: [...assessment.factors],
+    evidence: evidence.map((e) => ({
+      id: e.evidence_id,
+      sourceType: e.source_type,
+      sourceRef: e.source_ref,
+      claim: e.claim,
+      confidence: pct(e.confidence),
+      critical: e.critical ?? false,
+    })),
   }
 }
 

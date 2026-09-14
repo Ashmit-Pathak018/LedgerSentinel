@@ -56,6 +56,21 @@ export interface Transaction {
   policyVersion: string;
   modelVersion: string;
   criticalEvidenceCount: number;
+  // Present only on rows that came from the API. The gate's rationale (rule ids and the ev_*
+  // it cites), the assessment's recorded factors, and every piece of evidence behind them.
+  // Mock rows leave these undefined and the views fall back to their static blocks.
+  rationaleRefs?: string[];
+  factors?: string[];
+  evidence?: EvidenceItem[];
+}
+
+export interface EvidenceItem {
+  id: string;
+  sourceType: 'communication' | 'transaction' | 'advisory' | 'identity';
+  sourceRef: string;
+  claim: string;
+  confidence: number; // 0-100
+  critical: boolean;
 }
 
 export interface CaseItem {
