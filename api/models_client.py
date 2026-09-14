@@ -24,11 +24,14 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 import httpx
 
 import _contracts_path  # noqa: F401
 from contracts import Signal, load_fixture
+
+import prism
 
 log = logging.getLogger("models_client")
 
@@ -124,11 +127,33 @@ def _parse(body) -> list[Signal]:
     return [Signal(**_normalise(item, meta)) for item in rows]
 
 
-def score_text(source_ref: str, text: str, *, scenario: str | None = None) -> list[Signal]:
+def score_text(source_ref: str, text: str, *, scenario: str | None = None,
+               session_id: str | None = None) -> list[Signal]:
     """Score already-redacted text. Redaction happens before this is called (rule 6)."""
     if mock_enabled():
-        return _from_fixture(scenario or "s01", source_ref)
+        # Trace the mock path too. MODELS_MOCK=true is the demo's fallback and the path the
+        # other lanes develop against, so leaving it untraced makes the trajectory look like
+        # the gate decided with no evidence behind it. Tagged mock so it is never mistaken
+        # for real inference.
+        t0 = time.perf_counter()
+        signals = _from_fixture(scenario or "s01", source_ref)
+        prism.trace(
+            session_id=session_id or source_ref,
+            model="fixtures@MODELS_MOCK",
+            input_messages=[{"role": "user", "content": text[:500]}],
+            output_message=", ".join(
+                f"{x.signal_type.value}={x.confidence:.2f}" for x in signals
+            ) or "no signals",
+            latency_ms=(time.perf_counter() - t0) * 1000,
+            operation="chat",
+            agent_name="signal_extraction",
+            metadata={"source_ref": source_ref, "signal_count": len(signals), "mock": True},
+        )
+        return signals
 
+    # PRISM: one span per model call. `text` is already redacted (rule 6), and we send the
+    # derived signal types rather than the message body (rule 7).
+    t0 = time.perf_counter()
     try:
         r = httpx.post(
             f"{MODELS_URL}{MODELS_PREFIX}/text/score",
@@ -137,8 +162,32 @@ def score_text(source_ref: str, text: str, *, scenario: str | None = None) -> li
         )
         r.raise_for_status()
     except httpx.HTTPError as e:
+        prism.trace(
+            session_id=session_id or source_ref,
+            model=os.getenv("EXTRACT_MODEL", "qwen3:4b"),
+            input_messages=[{"role": "user", "content": text[:500]}],
+            output_message="",
+            latency_ms=(time.perf_counter() - t0) * 1000,
+            operation="chat",
+            agent_name="signal_extraction",
+            error=str(e)[:300],
+            metadata={"source_ref": source_ref, "degraded": True},
+        )
         raise ModelsUnavailable(str(e)) from e
-    return _parse(r.json())
+
+    signals = _parse(r.json())
+    prism.trace(
+        session_id=session_id or source_ref,
+        model=os.getenv("EXTRACT_MODEL", "qwen3:4b"),
+        input_messages=[{"role": "user", "content": text[:500]}],
+        output_message=", ".join(f"{x.signal_type.value}={x.confidence:.2f}" for x in signals)
+        or "no signals",
+        latency_ms=(time.perf_counter() - t0) * 1000,
+        operation="chat",
+        agent_name="signal_extraction",
+        metadata={"source_ref": source_ref, "signal_count": len(signals)},
+    )
+    return signals
 
 
 def _from_fixture(scenario: str, source_ref: str) -> list[Signal]:

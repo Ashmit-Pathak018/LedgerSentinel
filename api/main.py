@@ -36,6 +36,7 @@ from contracts import (
 
 import fusion
 import models_client
+import prism
 import store as store_mod
 from policy.gate import evaluate
 from policy.thresholds import DEFAULT, POLICY_VERSION
@@ -85,6 +86,7 @@ def health() -> dict:
         "policy_version": POLICY_VERSION,
         "models_mock": models_client.mock_enabled(),
         "store": STORE.backend,
+        "prism_tracing": prism.enabled(),
         "models": models,
     }
 
@@ -100,7 +102,9 @@ def analyze(req: AnalyzeRequest) -> dict:
     for comm_id in req.communication_ids or ["comm_771"]:
         text, redactions = redact(_load_comm_text(comm_id, req.scenario))
         try:
-            signals += models_client.score_text(comm_id, text, scenario=req.scenario)
+            signals += models_client.score_text(
+                comm_id, text, scenario=req.scenario, session_id=trace_id
+            )
         except models_client.ModelsUnavailable:
             # Rule 5: a dead model service degrades the analysis. It does not fail it,
             # and it certainly does not approve anything.
@@ -127,15 +131,35 @@ def analyze(req: AnalyzeRequest) -> dict:
     # 3. The gate. The only step that produces an action.
     high_impact = req.amount >= DEFAULT.high_impact_amount
     time_pressure = any(s.signal_type.value in ("urgency", "threat") for s in signals)
-    action = evaluate(
-        _policy_input(
-            assessment,
-            high_impact,
-            time_pressure,
-            critical_evidence_ids=tuple(e.evidence_id for e in evidence if e.critical),
-        ),
-        now=now,
+    # PRISM: the policy gate is the decision point, so it gets its own span. Not a model
+    # call - operation is execute_tool, which is what it is.
+    policy_input = _policy_input(
+        assessment,
+        high_impact,
+        time_pressure,
+        critical_evidence_ids=tuple(e.evidence_id for e in evidence if e.critical),
     )
+    with prism.span(
+        session_id=trace_id,
+        model=f"policy-gate@{POLICY_VERSION}",
+        operation="execute_tool",
+        agent_name="policy_gate",
+        input_messages=[{
+            "role": "user",
+            "content": f"risk={assessment.risk_score} confidence={assessment.confidence} "
+                       f"critical={assessment.critical_evidence_present} "
+                       f"high_impact={high_impact} degraded={assessment.degraded}",
+        }],
+        metadata={
+            "risk_score": assessment.risk_score,
+            "confidence": assessment.confidence,
+            "degraded": assessment.degraded,
+            "policy_version": POLICY_VERSION,
+        },
+    ) as gate_span:
+        action = evaluate(policy_input, now=now)
+        gate_span.output = f"{action.type.value} | {', '.join(action.rationale_refs)}"
+
 
     decision = Decision(
         decision_id=f"dec_{uuid.uuid4().hex[:8]}",
@@ -167,6 +191,28 @@ def analyze(req: AnalyzeRequest) -> dict:
             "model_version": assessment.model_version,
             "degraded": degraded,
         }
+    )
+
+    prism.trace(
+        session_id=trace_id,
+        model=f"policy-gate@{POLICY_VERSION}",
+        input_messages=[{
+            "role": "user",
+            "content": f"analyze {req.transaction_id} amount={req.amount} "
+                       f"{req.currency} -> {req.destination_country}",
+        }],
+        output_message=f"{decision.action.value} (human_required={decision.human_required})",
+        latency_ms=(datetime.now(timezone.utc) - now).total_seconds() * 1000,
+        operation="invoke_agent",
+        agent_name="ledgersentinel",
+        metadata={
+            "transaction_id": req.transaction_id,
+            "action": decision.action.value,
+            "risk_score": assessment.risk_score,
+            "confidence": assessment.confidence,
+            "degraded": degraded,
+            "signal_count": len(signals),
+        },
     )
 
     payload = {
