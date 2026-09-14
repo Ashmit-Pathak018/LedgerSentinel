@@ -68,6 +68,11 @@ def evaluate(
         proposals.append((ActionType.ESCALATE, "rule.critical_scam_evidence"))
     if p.risk_score >= t.escalate_at:
         proposals.append((ActionType.ESCALATE, "rule.risk_gte_85"))
+    if p.high_impact and p.confidence < t.escalate_confidence_floor:
+        # High impact plus genuine uncertainty. Risk alone may look unremarkable - that is
+        # precisely why this rule exists. Conflicting evidence on a large transaction is a
+        # human's call, not a queue item an analyst can quietly release.
+        proposals.append((ActionType.ESCALATE, "rule.high_impact_low_confidence"))
 
     if p.risk_score >= t.hold_at:
         proposals.append((ActionType.HOLD, "rule.risk_60_84"))
@@ -133,6 +138,15 @@ def _assert_invariants(p: PolicyInput, action: Action) -> None:
     if p.critical_evidence and action.type is not ActionType.ESCALATE:
         raise AssertionError(
             "critical evidence must reach a human (rule 5), got " f"{action.type}"
+        )
+    if (
+        p.high_impact
+        and p.confidence < DEFAULT.escalate_confidence_floor
+        and action.type is not ActionType.ESCALATE
+    ):
+        raise AssertionError(
+            "escalation safety violated: high-impact uncertainty must reach a human, "
+            f"got {action.type}"
         )
     if action.type is ActionType.ESCALATE and not action.rationale_refs:
         raise AssertionError("every decision must be explainable (rule 4)")

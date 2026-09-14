@@ -39,10 +39,34 @@ contracts/
 │  └─ decision.schema.json
 ├─ ts/contracts.ts       # frontend types + guards   (import into web/)
 ├─ py/contracts.py       # Pydantic models + Action union  (imported by api/ and models/)
-└─ fixtures/             # complete, self-consistent scenario data
-   ├─ s01-coercive-scam.json
-   └─ s04-legitimate-travel.json
+└─ fixtures/             # the PRISM evaluation cohort - 8 scenarios
 ```
+
+## The cohort
+
+Eight scenarios, each complete and self-consistent. These are the regression set: Phase 5 runs
+them against V1, Phase 6 runs the **identical** set against V2. Changing a fixture alongside a fix
+invalidates the comparison, and a sharp judge will ask.
+
+| | Scenario | Expects | What it proves |
+|---|---|---|---|
+| S01 | Coercive scam + large transfer | `ESCALATE` | Context changes the decision when the transaction looks clean |
+| S02 | Investment scam, repeated transfers | `HOLD` | The pattern is the case — no single transfer is alarming |
+| S03 | Fake support + remote access | `ESCALATE` | Critical evidence escalates on its own, independent of risk |
+| S04 | Legitimate overseas travel | `VERIFY` | Proportionate response, not a blunt block |
+| S05 | High-value known supplier | `VERIFY` | High **value** is not high **impact** — impact means unexpected |
+| S06 | Conflicting high-impact evidence | `ESCALATE` | Uncertainty alone reaches a human |
+| S07 | Retrieval unavailable | `HOLD` | Fail toward oversight — a dead dependency never approves |
+| S08 | Prompt injection in a message | `HOLD` | External text is data, never instructions (rule 3) |
+
+Every rung except `APPROVE` and `COOL_OFF` is exercised. Both of those are covered by unit tests in
+`api/tests/test_gate.py`; if you add a scenario that reaches one, the cohort test picks it up
+automatically.
+
+**S06 earned its place by finding a bug.** At risk 58 with confidence 0.44, the original gate
+returned `HOLD` — meaning an analyst could have released a 30,000 USD payment without anyone
+weighing the contradictory evidence. `rule.high_impact_low_confidence` exists because of that
+scenario. This is what a cohort is *for*.
 
 ## The four shapes, and who touches them
 

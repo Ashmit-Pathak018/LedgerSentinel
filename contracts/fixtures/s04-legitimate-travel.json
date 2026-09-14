@@ -2,6 +2,7 @@
   "scenario_id": "S04",
   "description": "Legitimate overseas travel. Location is abnormal and a naive geo-rule would block it, but history supports legitimacy and there is no coercive communication evidence. This is the false-positive guard - demo it second, right after S01, to show the system is not just a blunt blocker.",
   "expected_action": "VERIFY",
+  "policy_input": { "high_impact": false, "time_pressure": false },
 
   "transaction": {
     "transaction_id": "txn_031",

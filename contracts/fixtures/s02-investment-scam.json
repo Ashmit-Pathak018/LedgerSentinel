@@ -1,0 +1,120 @@
+{
+  "scenario_id": "S02",
+  "description": "Investment scam across repeated transfers. No single message is alarming and no single transfer is large. The pattern is the case: four transfers in eight days, each bigger than the last, all to a 'trading platform' the customer found through a messaging group.",
+  "expected_action": "HOLD",
+  "policy_input": { "high_impact": false, "time_pressure": true },
+
+  "transaction": {
+    "transaction_id": "txn_044",
+    "customer_id": "cust_3318",
+    "account_id": "acct_7120",
+    "amount": 8500,
+    "currency": "USD",
+    "destination_country": "CY",
+    "destination_ref": "benef_seen_3x",
+    "timestamp": "2026-09-14T09:18:40Z",
+    "location": "Nagpur, IN",
+    "device": "dev_known_2204",
+    "communication_ids": ["comm_910", "comm_911"],
+    "prior_transfers_same_beneficiary": [1200, 3000, 5500]
+  },
+
+  "customer": {
+    "customer_id": "cust_3318",
+    "age_band": "45-54",
+    "account_age_days": 1560,
+    "identity_assurance": "VERIFIED",
+    "normal_activity": "Salary credits and domestic bill payments. No investment activity before 8 days ago."
+  },
+
+  "signals": [
+    {
+      "signal_type": "investment_lure",
+      "value": 0.84,
+      "confidence": 0.79,
+      "source_ref": "comm_910",
+      "evidence_span": [12, 71],
+      "redacted_quote": "guaranteed 18% monthly, our other members are already withdrawing",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.64,
+      "confidence": 0.58,
+      "source_ref": "comm_911",
+      "evidence_span": [0, 48],
+      "redacted_quote": "the allocation window closes at midnight tonight",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    }
+  ],
+
+  "evidence": [
+    {
+      "evidence_id": "ev_6201",
+      "source_type": "communication",
+      "source_ref": "comm_910",
+      "claim": "Customer was promised guaranteed monthly returns of 18% by a group contact, with social proof from supposed other investors",
+      "confidence": 0.79,
+      "timestamp": "2026-09-13T20:04:00Z",
+      "signal_refs": ["investment_lure"],
+      "redacted_quote": "guaranteed 18% monthly, our other members are already withdrawing",
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_6202",
+      "source_type": "transaction",
+      "source_ref": "txn_044",
+      "claim": "Fourth transfer to the same new beneficiary in eight days, each larger than the last: 1200, 3000, 5500, now 8500",
+      "confidence": 0.97,
+      "timestamp": "2026-09-14T09:18:40Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_6203",
+      "source_type": "advisory",
+      "source_ref": "adv_0117",
+      "claim": "Advisory describes escalating-deposit investment fraud in which small early withdrawals are honoured to build trust before a large final deposit",
+      "confidence": 0.83,
+      "timestamp": "2026-07-19T00:00:00Z",
+      "signal_refs": [],
+      "critical": false
+    }
+  ],
+
+  "assessment": {
+    "assessment_id": "as_2044",
+    "transaction_id": "txn_044",
+    "risk_score": 66,
+    "confidence": 0.76,
+    "factors": [
+      "investment_lure",
+      "urgency",
+      "escalating_transfer_pattern",
+      "new_beneficiary",
+      "advisory_match"
+    ],
+    "evidence_ids": ["ev_6201", "ev_6202", "ev_6203"],
+    "identity_assurance": "VERIFIED",
+    "critical_evidence_present": false,
+    "degraded": false,
+    "model_version": "gemma3n-e4b@2026-09-14",
+    "created_at": "2026-09-14T09:18:47Z"
+  },
+
+  "decision": {
+    "decision_id": "dec_2044",
+    "transaction_id": "txn_044",
+    "assessment_id": "as_2044",
+    "action": "HOLD",
+    "human_required": false,
+    "policy_version": "policy-1.2",
+    "rationale_refs": ["ev_6201", "ev_6202", "ev_6203", "rule.risk_60_84"],
+    "trace_id": "prism-s02a001",
+    "proposal_rejected": false,
+    "hold_expires_at": "2026-09-15T09:18:47Z",
+    "created_at": "2026-09-14T09:18:47Z"
+  },
+
+  "demo_note": "Worth saying out loud: run this transaction on its own and it is unremarkable - 8500 USD from a verified customer on a known device. The case only exists because the system looked at the three transfers before it and at what the customer was told. That is the argument for context."
+}

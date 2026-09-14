@@ -1,0 +1,133 @@
+{
+  "scenario_id": "S03",
+  "description": "Fake bank support plus remote access. The caller talked the customer into installing a screen-sharing app and reading out an OTP. This is the clearest-cut case in the cohort and the one where speed matters most - by the time a human reviews it, the attacker may already be inside the session.",
+  "expected_action": "ESCALATE",
+  "policy_input": { "high_impact": true, "time_pressure": false },
+
+  "transaction": {
+    "transaction_id": "txn_052",
+    "customer_id": "cust_4471",
+    "account_id": "acct_3390",
+    "amount": 22000,
+    "currency": "USD",
+    "destination_country": "AE",
+    "destination_ref": "benef_first_seen",
+    "timestamp": "2026-09-14T15:47:02Z",
+    "location": "Kochi, IN",
+    "device": "dev_known_5561",
+    "communication_ids": ["comm_1020"]
+  },
+
+  "customer": {
+    "customer_id": "cust_4471",
+    "age_band": "75+",
+    "account_age_days": 6205,
+    "identity_assurance": "VERIFIED",
+    "normal_activity": "Pension credits, domestic transfers under 1500 USD, branch-assisted banking."
+  },
+
+  "signals": [
+    {
+      "signal_type": "remote_access_request",
+      "value": 0.96,
+      "confidence": 0.93,
+      "source_ref": "comm_1020",
+      "evidence_span": [88, 147],
+      "redacted_quote": "install the support app so I can see your screen and fix it",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    },
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.93,
+      "confidence": 0.89,
+      "source_ref": "comm_1020",
+      "evidence_span": [0, 44],
+      "redacted_quote": "calling from the fraud department",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    },
+    {
+      "signal_type": "otp_request",
+      "value": 0.90,
+      "confidence": 0.85,
+      "source_ref": "comm_1020",
+      "evidence_span": [201, 249],
+      "redacted_quote": "read me the six digits so I can cancel the charge",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    }
+  ],
+
+  "evidence": [
+    {
+      "evidence_id": "ev_7301",
+      "source_type": "communication",
+      "source_ref": "comm_1020",
+      "claim": "Caller impersonating the fraud department directed the customer to install screen-sharing software and read out a one-time passcode",
+      "confidence": 0.91,
+      "timestamp": "2026-09-14T15:41:00Z",
+      "signal_refs": ["remote_access_request", "authority_impersonation", "otp_request"],
+      "redacted_quote": "install the support app so I can see your screen and fix it",
+      "critical": true
+    },
+    {
+      "evidence_id": "ev_7302",
+      "source_type": "transaction",
+      "source_ref": "txn_052",
+      "claim": "22000 USD to a first-seen international beneficiary from an account whose largest prior transfer was 1500 USD",
+      "confidence": 0.98,
+      "timestamp": "2026-09-14T15:47:02Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_7303",
+      "source_type": "advisory",
+      "source_ref": "adv_0041",
+      "claim": "Published advisory: no legitimate bank ever asks a customer to install remote-access software or disclose a one-time passcode",
+      "confidence": 0.99,
+      "timestamp": "2026-05-30T00:00:00Z",
+      "signal_refs": [],
+      "critical": false
+    }
+  ],
+
+  "assessment": {
+    "assessment_id": "as_3052",
+    "transaction_id": "txn_052",
+    "risk_score": 98,
+    "confidence": 0.89,
+    "factors": [
+      "remote_access_request",
+      "authority_impersonation",
+      "otp_request",
+      "unusual_destination",
+      "first_time_beneficiary",
+      "advisory_match"
+    ],
+    "evidence_ids": ["ev_7301", "ev_7302", "ev_7303"],
+    "identity_assurance": "VERIFIED",
+    "critical_evidence_present": true,
+    "degraded": false,
+    "model_version": "gemma3n-e4b@2026-09-14",
+    "created_at": "2026-09-14T15:47:09Z"
+  },
+
+  "decision": {
+    "decision_id": "dec_3052",
+    "transaction_id": "txn_052",
+    "assessment_id": "as_3052",
+    "action": "ESCALATE",
+    "human_required": true,
+    "policy_version": "policy-1.2",
+    "rationale_refs": [
+      "ev_7301",
+      "ev_7303",
+      "rule.critical_scam_evidence",
+      "rule.risk_gte_85"
+    ],
+    "trace_id": "prism-s03a001",
+    "proposal_rejected": false,
+    "created_at": "2026-09-14T15:47:09Z"
+  },
+
+  "demo_note": "Tests the critical-evidence path specifically. remote_access_request and otp_request are the two labels marked critical in fusion, which means this escalates on evidence alone - it would still reach a human even if the risk score came back at zero. Worth demonstrating by dropping the risk score to 0 live and showing the action does not change."
+}

@@ -1,0 +1,104 @@
+{
+  "scenario_id": "S07",
+  "description": "The advisory index is down mid-analysis. Communication signals came back, but the system could not check them against published fraud guidance. This tests rule 5 end to end: a component failure degrades the analysis and moves UP the ladder. It must never quietly approve.",
+  "expected_action": "HOLD",
+  "policy_input": { "high_impact": false, "time_pressure": false },
+
+  "transaction": {
+    "transaction_id": "txn_089",
+    "customer_id": "cust_7712",
+    "account_id": "acct_5523",
+    "amount": 6200,
+    "currency": "USD",
+    "destination_country": "TH",
+    "destination_ref": "benef_first_seen",
+    "timestamp": "2026-09-14T16:30:55Z",
+    "location": "Jaipur, IN",
+    "device": "dev_new_9914",
+    "communication_ids": ["comm_1380"]
+  },
+
+  "customer": {
+    "customer_id": "cust_7712",
+    "age_band": "25-34",
+    "account_age_days": 880,
+    "identity_assurance": "BASIC",
+    "normal_activity": "Domestic transfers, occasional travel spending in SE Asia."
+  },
+
+  "signals": [
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.66,
+      "confidence": 0.57,
+      "source_ref": "comm_1380",
+      "evidence_span": [15, 63],
+      "redacted_quote": "send it to this account instead of the usual one",
+      "model_version": "gemma3n-e4b@2026-09-14"
+    }
+  ],
+
+  "evidence": [
+    {
+      "evidence_id": "ev_1071",
+      "source_type": "communication",
+      "source_ref": "comm_1380",
+      "claim": "Customer was asked to send the payment to a different account than usual",
+      "confidence": 0.57,
+      "timestamp": "2026-09-14T16:22:00Z",
+      "signal_refs": ["payment_redirect"],
+      "redacted_quote": "send it to this account instead of the usual one",
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_1072",
+      "source_type": "transaction",
+      "source_ref": "txn_089",
+      "claim": "First-seen international beneficiary, initiated from a device not previously registered to this customer",
+      "confidence": 0.91,
+      "timestamp": "2026-09-14T16:30:55Z",
+      "signal_refs": [],
+      "critical": false
+    }
+  ],
+
+  "assessment": {
+    "assessment_id": "as_7089",
+    "transaction_id": "txn_089",
+    "risk_score": 41,
+    "confidence": 0.42,
+    "factors": [
+      "payment_redirect",
+      "first_time_beneficiary",
+      "new_device",
+      "advisory_lookup_failed",
+      "degraded_analysis"
+    ],
+    "evidence_ids": ["ev_1071", "ev_1072"],
+    "identity_assurance": "BASIC",
+    "critical_evidence_present": false,
+    "degraded": true,
+    "model_version": "gemma3n-e4b@2026-09-14",
+    "created_at": "2026-09-14T16:31:08Z"
+  },
+
+  "decision": {
+    "decision_id": "dec_7089",
+    "transaction_id": "txn_089",
+    "assessment_id": "as_7089",
+    "action": "HOLD",
+    "human_required": false,
+    "policy_version": "policy-1.2",
+    "rationale_refs": [
+      "ev_1071",
+      "ev_1072",
+      "rule.degraded_fail_toward_oversight"
+    ],
+    "trace_id": "prism-s07a001",
+    "proposal_rejected": false,
+    "hold_expires_at": "2026-09-15T16:31:08Z",
+    "created_at": "2026-09-14T16:31:08Z"
+  },
+
+  "demo_note": "Demo this by killing the retrieval service live and re-running. The satisfying part is what the audience expects versus what happens: most systems fail open when a dependency dies, because failing closed is inconvenient. Here the confidence drops from 0.70 to 0.42 and the action moves from VERIFY to HOLD. We could not see clearly, so we handed it to someone who can."
+}

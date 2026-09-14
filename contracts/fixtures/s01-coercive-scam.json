@@ -2,6 +2,7 @@
   "scenario_id": "S01",
   "description": "Coercive scam plus large transfer. The transaction looks plausible in isolation - the customer really did authorise it. The call is what changes the decision. This is the Phase 2 vertical slice and the demo's opening beat.",
   "expected_action": "ESCALATE",
+  "policy_input": { "high_impact": true, "time_pressure": true },
 
   "transaction": {
     "transaction_id": "txn_018",

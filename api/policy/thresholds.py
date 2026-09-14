@@ -31,6 +31,13 @@ class Thresholds:
     # Below this confidence we step up to VERIFY regardless of how low risk looks.
     min_confidence: float = 0.75
 
+    # Below this confidence, a HIGH-IMPACT transaction goes straight to a human - even when risk
+    # looks unremarkable. This is the "escalation safety" evaluator in the PRD: high-impact
+    # uncertainty must reach a person 100% of the time. Without this rule, a case with genuinely
+    # conflicting evidence lands on HOLD and an analyst can release it without anyone having
+    # weighed the contradiction. That is the exact shape of an expensive mistake.
+    escalate_confidence_floor: float = 0.55
+
     # A transaction at or above this is high-impact and cannot be quietly approved.
     high_impact_amount: float = 10_000.0
 
@@ -57,6 +64,9 @@ class Thresholds:
             hold_at=_i("hold_at", cls.hold_at),
             escalate_at=_i("escalate_at", cls.escalate_at),
             min_confidence=_f("min_confidence", cls.min_confidence),
+            escalate_confidence_floor=_f(
+                "escalate_confidence_floor", cls.escalate_confidence_floor
+            ),
             high_impact_amount=_f("high_impact_amount", cls.high_impact_amount),
             cool_off_seconds=_i("cool_off_seconds", cls.cool_off_seconds),
             hold_duration_seconds=_i("hold_duration_seconds", cls.hold_duration_seconds),

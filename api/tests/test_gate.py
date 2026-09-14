@@ -8,6 +8,7 @@ determinism, the ladder only ratcheting upward, and failing toward oversight.
 
 from __future__ import annotations
 
+import pathlib
 from datetime import datetime, timezone
 
 import pytest
@@ -155,37 +156,83 @@ def test_gate_accepts_a_proposal_at_least_as_restrictive():
 
 # ------------------------------------------------------- the real scenarios
 
-@pytest.mark.parametrize(
-    "scenario,expected",
-    [("s01", ActionType.ESCALATE), ("s04", ActionType.VERIFY)],
+FIXTURES = sorted(
+    p.stem for p in (pathlib.Path(__file__).parents[2] / "contracts" / "fixtures").glob("*.json")
 )
-def test_fixtures_reach_their_expected_action(scenario, expected):
-    """End-to-end against the frozen fixtures. This is the acceptance criterion."""
+
+
+def _policy_input_for(fx: dict) -> PolicyInput:
+    """Build the gate's input from a fixture.
+
+    A fixture declares high_impact and time_pressure explicitly rather than having the test
+    derive them, because 'high impact' means high value AND unexpected - see S05, where a large
+    payment to a long-standing supplier is deliberately not an anomaly.
+    """
+    pi = fx.get("policy_input", {})
+    return PolicyInput.from_assessment(
+        Assessment(**fx["assessment"]),
+        high_impact=pi.get(
+            "high_impact", fx["transaction"]["amount"] >= DEFAULT.high_impact_amount
+        ),
+        time_pressure=pi.get(
+            "time_pressure",
+            any(s["signal_type"] in ("urgency", "threat") for s in fx["signals"]),
+        ),
+    )
+
+
+@pytest.mark.parametrize("scenario", FIXTURES)
+def test_fixture_reaches_its_expected_action(scenario):
+    """Every scenario in the cohort. Adding a fixture automatically adds a test."""
     fx = load_fixture(scenario)
-    a = Assessment(**fx["assessment"])
-
-    amount = fx["transaction"]["amount"]
-    high_impact = amount >= DEFAULT.high_impact_amount
-    time_pressure = any(
-        s["signal_type"] in ("urgency", "threat") for s in fx["signals"]
-    )
-
-    action = evaluate(
-        PolicyInput.from_assessment(a, high_impact=high_impact, time_pressure=time_pressure),
-        now=NOW,
-    )
+    expected = ActionType(fx["expected_action"])
+    action = evaluate(_policy_input_for(fx), now=NOW)
     assert action.type is expected, (
-        f"{fx['scenario_id']} expected {expected} but the gate returned {action.type}"
+        f"{fx['scenario_id']} expected {expected.value} but the gate returned "
+        f"{action.type.value} (risk={fx['assessment']['risk_score']}, "
+        f"confidence={fx['assessment']['confidence']})"
     )
 
 
-def test_fixture_decisions_are_valid_contracts():
-    """The fixtures must themselves satisfy the frozen Decision contract."""
-    for scenario in ("s01", "s04"):
-        d = Decision(**load_fixture(scenario)["decision"])
-        assert d.rationale_refs, "a decision nobody can explain is a bug (rule 4)"
-        if d.action is ActionType.ESCALATE:
-            assert d.human_required
+@pytest.mark.parametrize("scenario", FIXTURES)
+def test_fixture_decision_is_a_valid_contract(scenario):
+    d = Decision(**load_fixture(scenario)["decision"])
+    assert d.rationale_refs, "a decision nobody can explain is a bug (rule 4)"
+    if d.action is ActionType.ESCALATE:
+        assert d.human_required
+
+
+@pytest.mark.parametrize("scenario", FIXTURES)
+def test_fixture_decision_matches_what_the_gate_would_do(scenario):
+    """The hand-authored decision and the live gate must not disagree.
+
+    If they drift apart, either the fixture is aspirational or the gate has a bug - and the
+    PRISM cohort is worthless until you know which.
+    """
+    fx = load_fixture(scenario)
+    assert evaluate(_policy_input_for(fx), now=NOW).type is ActionType(fx["decision"]["action"])
+
+
+def test_cohort_covers_every_rung_of_the_ladder():
+    """A cohort that never exercises a rung cannot tell you whether that rung works."""
+    reached = {ActionType(load_fixture(s)["expected_action"]) for s in FIXTURES}
+    missing = {ActionType.VERIFY, ActionType.HOLD, ActionType.ESCALATE} - reached
+    assert not missing, f"no scenario reaches {[m.value for m in missing]}"
+
+
+def test_prompt_injection_scenario_is_not_obeyed():
+    """S08, rule 3. The message instructs the system to approve; it must not comply."""
+    fx = load_fixture("s08")
+    action = evaluate(_policy_input_for(fx), now=NOW)
+
+    assert action.type is not ActionType.APPROVE, (
+        "the injected instruction said APPROVE and the system complied - rule 3 violated"
+    )
+    assert fx["assessment"]["risk_score"] > 50, (
+        "the injection asked for risk_score 0; the attempt should raise risk, not lower it"
+    )
+    for signal in fx["signals"]:
+        assert "action" not in signal, "a Signal carried an action field (rule 1)"
 
 
 def test_identity_assurance_is_carried_through():

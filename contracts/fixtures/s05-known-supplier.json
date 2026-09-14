@@ -1,0 +1,95 @@
+{
+  "scenario_id": "S05",
+  "description": "High-value payment to a known business supplier. 45000 USD is a lot of money, but it is an expected counterparty on an account that pays them most months. The point of this scenario is that VALUE alone is not an anomaly - high_impact means high value AND unexpected.",
+  "expected_action": "VERIFY",
+  "policy_input": { "high_impact": false, "time_pressure": false },
+
+  "transaction": {
+    "transaction_id": "txn_067",
+    "customer_id": "cust_5502",
+    "account_id": "acct_1188",
+    "amount": 45000,
+    "currency": "USD",
+    "destination_country": "DE",
+    "destination_ref": "benef_seen_14x",
+    "timestamp": "2026-09-14T11:05:33Z",
+    "location": "Pune, IN",
+    "device": "dev_known_8802",
+    "communication_ids": ["comm_1140"],
+    "beneficiary_first_paid": "2024-03-11",
+    "prior_payments_same_beneficiary": 14
+  },
+
+  "customer": {
+    "customer_id": "cust_5502",
+    "age_band": "35-44",
+    "account_age_days": 2920,
+    "identity_assurance": "STRONG",
+    "normal_activity": "Registered business account. Monthly supplier payments to DE and NL, typically 30000-50000 USD."
+  },
+
+  "signals": [],
+
+  "evidence": [
+    {
+      "evidence_id": "ev_8501",
+      "source_type": "transaction",
+      "source_ref": "txn_067",
+      "claim": "Fifteenth payment to this supplier since March 2024, within the account's normal 30000-50000 USD monthly range",
+      "confidence": 0.96,
+      "timestamp": "2026-09-14T11:05:33Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_8502",
+      "source_type": "communication",
+      "source_ref": "comm_1140",
+      "claim": "No coercive, impersonation or redirection language detected in the customer's communications in the analysis window",
+      "confidence": 0.92,
+      "timestamp": "2026-09-14T11:00:00Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_8503",
+      "source_type": "identity",
+      "source_ref": "cust_5502",
+      "claim": "Initiated from a long-registered device on a business account with strong identity assurance",
+      "confidence": 0.95,
+      "timestamp": "2026-09-14T11:05:33Z",
+      "signal_refs": [],
+      "critical": false
+    }
+  ],
+
+  "assessment": {
+    "assessment_id": "as_5067",
+    "transaction_id": "txn_067",
+    "risk_score": 38,
+    "confidence": 0.86,
+    "factors": ["high_value", "expected_counterparty", "consistent_with_history", "known_device"],
+    "evidence_ids": ["ev_8501", "ev_8502", "ev_8503"],
+    "identity_assurance": "STRONG",
+    "critical_evidence_present": false,
+    "degraded": false,
+    "model_version": "gemma3n-e4b@2026-09-14",
+    "created_at": "2026-09-14T11:05:38Z"
+  },
+
+  "decision": {
+    "decision_id": "dec_5067",
+    "transaction_id": "txn_067",
+    "assessment_id": "as_5067",
+    "action": "VERIFY",
+    "human_required": false,
+    "policy_version": "policy-1.2",
+    "rationale_refs": ["ev_8501", "ev_8503", "rule.risk_30_59"],
+    "trace_id": "prism-s05a001",
+    "proposal_rejected": false,
+    "verification_channel": "app_push",
+    "created_at": "2026-09-14T11:05:38Z"
+  },
+
+  "demo_note": "The invoice-redirection counter-case. A business paying its usual supplier should not be blocked, but 45000 USD still deserves one tap of confirmation - that is exactly the transaction a redirected-invoice attack targets. Note high_impact is false here: the amount is large but entirely expected, so it is not an anomaly. Compare with S06, where the same size of payment IS an anomaly and the outcome is very different."
+}
