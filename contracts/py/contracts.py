@@ -368,15 +368,32 @@ class PolicyInput:
     degraded: bool = False
     identity_assurance: IdentityAssurance | None = None
 
+    # Which evidence made this critical. The gate cites these directly, so a decision that acts
+    # on critical evidence is structurally unable to omit it from its own reasoning.
+    #
+    # Added in V2. V1 had only the boolean, so the gate could fire rule.critical_scam_evidence
+    # and produce a rationale naming no evidence at all - PRISM caught that at 0/2 coverage.
+    critical_evidence_ids: tuple[str, ...] = ()
+
     def __post_init__(self) -> None:
         if not 0 <= self.risk_score <= 100:
             raise ValueError(f"risk_score must be in [0,100], got {self.risk_score}")
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(f"confidence must be in [0,1], got {self.confidence}")
+        if self.critical_evidence and not self.critical_evidence_ids:
+            raise ValueError(
+                "critical_evidence is True but no critical_evidence_ids were supplied. "
+                "A decision cannot cite evidence it was never given (rule 4)."
+            )
 
     @classmethod
     def from_assessment(
-        cls, a: Assessment, *, high_impact: bool, time_pressure: bool
+        cls,
+        a: Assessment,
+        *,
+        high_impact: bool,
+        time_pressure: bool,
+        critical_evidence_ids: tuple[str, ...] | list[str] = (),
     ) -> PolicyInput:
         return cls(
             risk_score=a.risk_score,
@@ -386,6 +403,7 @@ class PolicyInput:
             time_pressure=time_pressure,
             degraded=a.degraded,
             identity_assurance=a.identity_assurance,
+            critical_evidence_ids=tuple(critical_evidence_ids),
         )
 
 

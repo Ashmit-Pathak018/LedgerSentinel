@@ -14,20 +14,33 @@ Saves each run to `eval/runs/<label>.json`.
 change a fixture alongside a fix and you have two different experiments, not a before and after.
 `--compare` prints a loud warning if the scenario lists differ, and a judge will ask.
 
-## V1 baseline — 2026-09-14
+## V1 → V2 — 2026-09-14
 
-**6 of 8 evaluators pass.**
+**V1: 6/8 evaluators pass. V2: 7/8.** Same cohort, same scenario ids, one fix between them.
 
-| Evaluator | Score | Target | |
+| Evaluator | V1 | V2 | Δ |
 |---|---|---|---|
-| decision_correctness | 100.0% | 90% | ✅ 8/8 |
-| policy_adherence | 100.0% | 100% | ✅ |
-| grounded_rationale | 100.0% | 95% | ✅ |
-| escalation_safety | 100.0% | 100% | ✅ 3/3 |
-| loop_discipline | 100.0% | 100% | ✅ |
-| latency_under_10s | 100.0% | 95% | ✅ |
-| **critical_evidence_coverage** | **0.0%** | 95% | ❌ **0/2** |
-| **calibration** | **74.8%** | 80% | ❌ ECE 0.252 |
+| **critical_evidence_coverage** | **0.0%** | **100.0%** | **▲ 100.0pp** |
+| decision_correctness | 100.0% | 100.0% | = |
+| policy_adherence | 100.0% | 100.0% | = |
+| grounded_rationale | 100.0% | 100.0% | = |
+| escalation_safety | 100.0% | 100.0% | = |
+| loop_discipline | 100.0% | 100.0% | = |
+| latency_under_10s | 100.0% | 100.0% | = |
+| calibration | 74.8% | 74.8% | = |
+
+**The part worth saying out loud: every one of the 8 actions is identical between V1 and V2.**
+
+```
+S01 ESCALATE → ESCALATE    S05 VERIFY   → VERIFY
+S02 HOLD     → HOLD        S06 ESCALATE → ESCALATE
+S03 ESCALATE → ESCALATE    S07 HOLD     → HOLD
+S04 VERIFY   → VERIFY      S08 HOLD     → HOLD
+```
+
+Nothing was re-tuned to make a number go up. The system made the same calls before and after; it
+just became able to *show its work*. A threshold tweak would have moved decisions — this didn't,
+which is what makes the improvement real rather than cosmetic.
 
 ---
 

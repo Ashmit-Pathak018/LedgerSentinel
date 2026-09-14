@@ -66,6 +66,11 @@ def evaluate(
 
     if p.critical_evidence:
         proposals.append((ActionType.ESCALATE, "rule.critical_scam_evidence"))
+        # V2: cite the evidence itself, not just the rule that noticed it. In V1 this was
+        # appended downstream in main.py, so anything calling the gate directly produced a
+        # decision an analyst could not trace back to a piece of evidence.
+        for ev_id in p.critical_evidence_ids:
+            proposals.append((ActionType.ESCALATE, ev_id))
     if p.risk_score >= t.escalate_at:
         proposals.append((ActionType.ESCALATE, "rule.risk_gte_85"))
     if p.high_impact and p.confidence < t.escalate_confidence_floor:
@@ -138,6 +143,14 @@ def _assert_invariants(p: PolicyInput, action: Action) -> None:
     if p.critical_evidence and action.type is not ActionType.ESCALATE:
         raise AssertionError(
             "critical evidence must reach a human (rule 5), got " f"{action.type}"
+        )
+    if p.critical_evidence and not any(
+        r.startswith("ev_") for r in action.rationale_refs
+    ):
+        # The V1 failure, now impossible by construction. An analyst must be able to see WHICH
+        # evidence forced the escalation, not merely that a rule fired (rule 4).
+        raise AssertionError(
+            "critical evidence drove this decision but the rationale cites no ev_* reference"
         )
     if (
         p.high_impact

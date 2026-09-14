@@ -72,10 +72,15 @@ def _run_in_process(fx: dict) -> dict:
         any(s["signal_type"] in ("urgency", "threat") for s in fx["signals"]),
     )
 
+    critical_ids = tuple(e["evidence_id"] for e in fx["evidence"] if e.get("critical"))
+
     t0 = time.perf_counter()
     action = evaluate(
         PolicyInput.from_assessment(
-            assessment, high_impact=high_impact, time_pressure=time_pressure
+            assessment,
+            high_impact=high_impact,
+            time_pressure=time_pressure,
+            critical_evidence_ids=critical_ids,
         )
     )
     latency_ms = (time.perf_counter() - t0) * 1000
@@ -151,6 +156,9 @@ def _record(fx: dict, *, evidence_ids: list[str] | None = None, **kw) -> dict:
             time_pressure=pi_decl.get(
                 "time_pressure",
                 any(s["signal_type"] in ("urgency", "threat") for s in fx["signals"]),
+            ),
+            critical_evidence_ids=tuple(
+                e["evidence_id"] for e in fx["evidence"] if e.get("critical")
             ),
         )
     ).type.value

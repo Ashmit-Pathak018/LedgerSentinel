@@ -128,7 +128,13 @@ def analyze(req: AnalyzeRequest) -> dict:
     high_impact = req.amount >= DEFAULT.high_impact_amount
     time_pressure = any(s.signal_type.value in ("urgency", "threat") for s in signals)
     action = evaluate(
-        fusion_input := _policy_input(assessment, high_impact, time_pressure), now=now
+        _policy_input(
+            assessment,
+            high_impact,
+            time_pressure,
+            critical_evidence_ids=tuple(e.evidence_id for e in evidence if e.critical),
+        ),
+        now=now,
     )
 
     decision = Decision(
@@ -138,8 +144,9 @@ def analyze(req: AnalyzeRequest) -> dict:
         action=action.type,
         human_required=action.type.requires_human,
         policy_version=POLICY_VERSION,
-        rationale_refs=tuple(action.rationale_refs)
-        + tuple(e.evidence_id for e in evidence if e.critical),
+        # V2: the gate cites critical evidence itself. Appending it here was the V1 bug -
+        # citation was bolted on downstream, so anything calling the gate directly lost it.
+        rationale_refs=tuple(action.rationale_refs),
         trace_id=trace_id,
         cool_off_seconds=getattr(action, "delay_seconds", None),
         hold_expires_at=getattr(action, "expires_at", None),
@@ -227,11 +234,16 @@ def set_consent(customer_id: str, body: ConsentUpdate) -> dict:
     return {"customer_id": customer_id, "channels": STORE.get_consent(customer_id)}
 
 
-def _policy_input(assessment, high_impact: bool, time_pressure: bool):
+def _policy_input(
+    assessment, high_impact: bool, time_pressure: bool, critical_evidence_ids=()
+):
     from contracts import PolicyInput
 
     return PolicyInput.from_assessment(
-        assessment, high_impact=high_impact, time_pressure=time_pressure
+        assessment,
+        high_impact=high_impact,
+        time_pressure=time_pressure,
+        critical_evidence_ids=critical_evidence_ids,
     )
 
 

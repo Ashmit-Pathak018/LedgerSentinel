@@ -35,9 +35,16 @@ NOW = datetime(2026, 9, 14, 12, 0, tzinfo=timezone.utc)
 
 
 def gate(**kw) -> object:
-    """Evaluate with sensible defaults; override only what a test cares about."""
+    """Evaluate with sensible defaults; override only what a test cares about.
+
+    V2: critical_evidence now requires ids to cite, so supply one automatically unless the
+    test is specifically exercising that constraint.
+    """
     base = dict(risk_score=10, confidence=0.9)
-    return evaluate(PolicyInput(**{**base, **kw}), now=NOW)
+    merged = {**base, **kw}
+    if merged.get("critical_evidence") and "critical_evidence_ids" not in merged:
+        merged["critical_evidence_ids"] = ("ev_test0001",)
+    return evaluate(PolicyInput(**merged), now=NOW)
 
 
 # ------------------------------------------------------------------ the ladder
@@ -144,7 +151,8 @@ def test_same_input_same_output():
 
 def test_gate_rejects_an_over_confident_ai_proposal():
     """'AI proposes, policy authorises' - the moment worth demoing."""
-    p = PolicyInput(risk_score=92, confidence=0.99, critical_evidence=True)
+    p = PolicyInput(risk_score=92, confidence=0.99, critical_evidence=True,
+                    critical_evidence_ids=("ev_4410",))
     with pytest.raises(PolicyViolation, match="Proposal rejected"):
         validate_proposal(ActionType.APPROVE, p, now=NOW)
 
@@ -177,6 +185,9 @@ def _policy_input_for(fx: dict) -> PolicyInput:
         time_pressure=pi.get(
             "time_pressure",
             any(s["signal_type"] in ("urgency", "threat") for s in fx["signals"]),
+        ),
+        critical_evidence_ids=tuple(
+            e["evidence_id"] for e in fx["evidence"] if e.get("critical")
         ),
     )
 
@@ -238,8 +249,49 @@ def test_prompt_injection_scenario_is_not_obeyed():
 def test_identity_assurance_is_carried_through():
     fx = load_fixture("s01")
     a = Assessment(**fx["assessment"])
-    p = PolicyInput.from_assessment(a, high_impact=True, time_pressure=True)
+    p = PolicyInput.from_assessment(
+        a, high_impact=True, time_pressure=True,
+        critical_evidence_ids=tuple(
+            e["evidence_id"] for e in fx["evidence"] if e.get("critical")
+        ),
+    )
     assert p.identity_assurance is IdentityAssurance.VERIFIED, (
         "S01's point is that the customer IS verified - a transaction-only "
         "detector has nothing to catch"
     )
+
+
+# ------------------------------------------------- V2: evidence citation is structural
+#
+# PRISM scored critical_evidence_coverage at 0/2 on V1: the gate fired
+# rule.critical_scam_evidence and produced a rationale naming no evidence at all. Citation was
+# appended downstream in main.py, so anything calling the gate directly lost it. These tests
+# keep that fixed.
+
+def test_critical_evidence_is_cited_by_the_gate_itself():
+    a = gate(risk_score=92, confidence=0.88, critical_evidence=True,
+             critical_evidence_ids=("ev_4410", "ev_4411"))
+    assert "ev_4410" in a.rationale_refs and "ev_4411" in a.rationale_refs
+    assert "rule.critical_scam_evidence" in a.rationale_refs, "the rule should still be named too"
+
+
+def test_critical_evidence_without_ids_is_rejected_at_construction():
+    """You cannot ask the gate to act on evidence you did not give it (rule 4)."""
+    with pytest.raises(ValueError, match="critical_evidence_ids"):
+        PolicyInput(risk_score=92, confidence=0.9, critical_evidence=True)
+
+
+@pytest.mark.parametrize("scenario", FIXTURES)
+def test_every_critical_scenario_cites_real_evidence(scenario):
+    """The V1 failure, as a permanent regression test across the whole cohort."""
+    fx = load_fixture(scenario)
+    if not any(e.get("critical") for e in fx["evidence"]):
+        pytest.skip("no critical evidence in this scenario")
+
+    action = evaluate(_policy_input_for(fx), now=NOW)
+    cited = [r for r in action.rationale_refs if r.startswith("ev_")]
+    assert cited, f"{fx['scenario_id']} escalated on critical evidence but cited none of it"
+
+    known = {e["evidence_id"] for e in fx["evidence"]}
+    for ref in cited:
+        assert ref in known, f"{fx['scenario_id']} cites {ref}, which is not in the scenario"
