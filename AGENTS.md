@@ -115,8 +115,14 @@ V1 → V2 critical-evidence fix was found and proven with.
 **Do not spend credits on RCA clustering of these flags.** It would cluster a rubric mismatch
 and produce confident findings about a customer-service agent nobody built.
 
-### Not yet wired
+### model-service tracing — verified live 2026-09-14
 
-`model-service/` (the Gemma/Qwen inference service) is **not** instrumented yet. Its
-`app/inference/gemma_client.py` and `app/inference/qwen_client.py` make the actual model calls
-and should get spans — see the standing rule above.
+Wired in 32d0cd6 and proven with one real inference: PRISM session `prism-tracecheck-1` holds a
+span with `model=qwen3:4b`, `gen_ai.agent.name=gemma_signal_extractor`,
+`gen_ai.operation.name=execute_tool`, `service=ledgersentinel-model-service`,
+`redaction_ran=true`, 130,878 ms. The input is the redacted `<communication>` wrapper, never the
+body. `DEMO_CACHE_MODE=true` returns before the model is called and emits **no span** - a cached
+demo is invisible in PRISM by design, so do not expect trajectories from it.
+
+The service needs its own `PRISMTRACE_API_KEY` in `model-service/.env` (same project id as the
+API). It is a separate process; the API's key does not reach it.
