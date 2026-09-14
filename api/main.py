@@ -34,6 +34,7 @@ from contracts import (
     load_fixture,
 )
 
+import advisory
 import fusion
 import models_client
 import prism
@@ -68,6 +69,20 @@ class AnalyzeRequest(BaseModel):
     first_time_beneficiary: bool = False
     identity_assurance: IdentityAssurance = IdentityAssurance.BASIC
     home_countries: list[str] = Field(default_factory=lambda: ["IN"])
+
+    # The account's own facts about the counterparty and the session. Dropping these is how the
+    # live path came to disagree with the gate on five of eight scenarios: a fixture that says
+    # "fourth transfer, each larger than the last" was reaching the API as a bare amount.
+    # Phase 3 derives them from Supabase; until then the caller supplies them.
+    destination_ref: str | None = None
+    prior_transfers_same_beneficiary: list[float] = Field(default_factory=list)
+    origin_country: str | None = None
+    device_known: bool | None = None
+
+    # Whether the published-advisory index answered. False simulates the outage S07 describes,
+    # which is how rule 5 gets demonstrated live instead of merely asserted: the same
+    # transaction, with the index down, must move UP the ladder and never approve.
+    advisory_index_available: bool = True
 
     scenario: str | None = Field(
         default=None,
@@ -112,24 +127,63 @@ def analyze(req: AnalyzeRequest) -> dict:
         except models_client.ContractViolation as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
 
-    # 2. Normalise to evidence, then fuse. Neither step decides anything.
-    evidence = fusion.signals_to_evidence(signals, now=now)
+    # 2. Check the signals against published advisories. A known scam shape is evidence in its
+    #    own right, and the index being down is a rule-5 degradation, not a clean result.
+    advisory_evidence = []
+    try:
+        advisory_evidence = advisory.lookup(
+            signals, available=req.advisory_index_available, now=now
+        )
+    except advisory.AdvisoryUnavailable:
+        degraded = True
+
+    # 3. The account's own facts. Beneficiary history is the half of "high impact" that is not
+    #    the amount, and the transfer pattern is evidence in its own right (S02: the pattern is
+    #    the case). Then normalise everything to evidence and fuse. Neither step decides anything.
+    history = fusion.derive_beneficiary_history(req.destination_ref)
+    if req.first_time_beneficiary and history is fusion.BeneficiaryHistory.UNKNOWN:
+        history = fusion.BeneficiaryHistory.FIRST_SEEN
+    high_value = req.amount >= DEFAULT.high_impact_amount
+    home = set(req.home_countries)
+
+    evidence = (
+        fusion.signals_to_evidence(signals, now=now)
+        + advisory_evidence
+        + fusion.transaction_evidence(
+            transaction_id=req.transaction_id,
+            amount=req.amount,
+            currency=req.currency,
+            history=history,
+            prior_amounts=req.prior_transfers_same_beneficiary,
+            now=now,
+        )
+    )
     assessment = fusion.assess(
         transaction_id=req.transaction_id,
         signals=signals,
         evidence=evidence,
         identity_assurance=req.identity_assurance,
-        unusual_destination=bool(req.destination_country)
-        and req.destination_country not in set(req.home_countries),
+        unusual_destination=bool(req.destination_country) and req.destination_country not in home,
+        unusual_location=bool(req.origin_country) and req.origin_country not in home,
         first_time_beneficiary=req.first_time_beneficiary,
-        advisory_match=any(s.signal_type.value == "authority_impersonation" for s in signals),
+        beneficiary_history=history,
+        escalating_transfer_pattern=fusion.escalating_pattern(
+            req.prior_transfers_same_beneficiary, req.amount
+        ),
+        high_value=high_value,
+        device_known=req.device_known,
+        # A real match against a published advisory - not "an impersonation label fired",
+        # which is what this used to mean.
+        advisory_match=bool(advisory_evidence),
         degraded=degraded,
         model_version="gemma3n-e4b@mock" if models_client.mock_enabled() else "gemma3n-e4b",
         now=now,
     )
 
-    # 3. The gate. The only step that produces an action.
-    high_impact = req.amount >= DEFAULT.high_impact_amount
+    # 4. The gate. The only step that produces an action.
+    # High impact is value AND an unexpected counterparty - not the amount alone, which used to
+    # hold every large supplier payment on magnitude (S05). See fusion.is_high_impact.
+    high_impact = fusion.is_high_impact(high_value, history)
     time_pressure = any(s.signal_type.value in ("urgency", "threat") for s in signals)
     # PRISM: the policy gate is the decision point, so it gets its own span. Not a model
     # call - operation is execute_tool, which is what it is.

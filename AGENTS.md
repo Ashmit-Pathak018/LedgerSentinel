@@ -12,10 +12,19 @@ locally. Two teammates have already lost time to exactly that.
 Run before you finish:
 
 ```bash
-python contracts/validate.py     # schemas, fixtures, Pydantic round-trip
-cd api && python -m pytest -q    # policy gate + boundary tests
-python eval/run.py --label dev   # the 8-scenario PRISM cohort
+python contracts/validate.py            # schemas, fixtures, Pydantic round-trip
+cd api && python -m pytest -q           # policy gate, fusion + boundary tests
+python eval/run.py --label dev          # the 8-scenario PRISM cohort, in-process
+python eval/run.py --live --label dev   # the SAME cohort through the running API
 ```
+
+**Run the cohort both ways.** In-process feeds the gate the fixture's hand-authored assessment
+and only proves the gate. `--live` is the path the dashboard and the demo actually use - it
+recomputes the assessment from signals and account facts through `api/advisory.py` and
+`api/fusion.py`. `v1.json` and `v2.json` were both in-process; the live path was first
+measured in `v3-live.json`, where it disagreed with the gate on 5 of 8 scenarios, because the
+request was dropping beneficiary history and had no advisory lookup at all. Nobody noticed for
+weeks because nobody ran it. If the two runs disagree, the live one is the bug.
 
 ## PRISM tracing (do not remove)
 

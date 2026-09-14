@@ -11,7 +11,9 @@ Two things this deliberately does NOT do:
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime, timezone
+from enum import StrEnum
 
 import _contracts_path  # noqa: F401
 from contracts import (
@@ -44,6 +46,74 @@ CRITICAL: frozenset[SignalType] = frozenset(
 
 # A label is only treated as present at all above this calibrated confidence.
 PRESENCE_FLOOR = 0.50
+
+# Some labels are only critical in combination. Impersonating the bank AND telling the customer
+# not to speak to the bank is one label defeating the other's only remedy - its entire purpose
+# is to stop the check that would catch it. S08 has impersonation plus a redirect and is a HOLD;
+# S01 adds the secrecy instruction, and that is not something an analyst queue should sit on.
+CRITICAL_COMBINATIONS: tuple[frozenset[SignalType], ...] = (
+    frozenset({SignalType.AUTHORITY_IMPERSONATION, SignalType.SECRECY_REQUEST}),
+)
+
+
+def _is_critical(present: set[SignalType]) -> bool:
+    return bool(present & CRITICAL) or any(c <= present for c in CRITICAL_COMBINATIONS)
+
+
+class BeneficiaryHistory(StrEnum):
+    """What the account knows about the counterparty - the half of "high impact" that is not
+    the amount."""
+
+    UNKNOWN = "unknown"  # nothing supplied. Treated neutrally, never as a reassurance.
+    FIRST_SEEN = "first_seen"  # never paid before
+    RECENT = "recent"  # paid a handful of times, all recently
+    ESTABLISHED = "established"  # a counterparty this account pays as a matter of course
+    DETAILS_CHANGED = "details_changed"  # known name, new account - the invoice-fraud signature
+    MERCHANT = "merchant"  # a retail merchant, not a transfer beneficiary at all
+
+    @property
+    def expected(self) -> bool:
+        return self in (BeneficiaryHistory.ESTABLISHED, BeneficiaryHistory.MERCHANT)
+
+
+def derive_beneficiary_history(destination_ref: str | None) -> BeneficiaryHistory:
+    """Stand-in for the account-history lookup. Phase 3 reads this from Supabase.
+
+    Until then the reference itself carries the history, in the vocabulary the fixtures already
+    use, so nothing is silently hardcoded and the demo can change it live.
+    """
+    ref = (destination_ref or "").lower()
+    if not ref:
+        return BeneficiaryHistory.UNKNOWN
+    if ref.startswith("merchant"):
+        return BeneficiaryHistory.MERCHANT
+    if "changed" in ref:
+        return BeneficiaryHistory.DETAILS_CHANGED
+    if "first" in ref:
+        return BeneficiaryHistory.FIRST_SEEN
+    if m := re.search(r"seen_(\d+)x", ref):
+        return BeneficiaryHistory.RECENT if int(m.group(1)) < 5 else BeneficiaryHistory.ESTABLISHED
+    return BeneficiaryHistory.UNKNOWN
+
+
+def escalating_pattern(prior_amounts: list[float], amount: float) -> bool:
+    """Every transfer larger than the last, and this one larger still.
+
+    The pattern is the case (S02): no single transfer is alarming, the sequence is. Two points
+    are not a pattern.
+    """
+    seq = [*prior_amounts, amount]
+    return len(seq) >= 3 and all(b > a for a, b in zip(seq, seq[1:]))
+
+
+def is_high_impact(high_value: bool, history: BeneficiaryHistory) -> bool:
+    """High impact = high VALUE and an UNEXPECTED counterparty.
+
+    Value alone is not an anomaly: a business paying its supplier 45,000 every month is not a
+    case, it is a Tuesday (S05). The gate holds and escalates on this flag, so it has to mean
+    anomaly, not magnitude - magnitude is scored separately, as risk.
+    """
+    return high_value and not history.expected
 
 
 def _id(prefix: str, *parts: str) -> str:
@@ -78,10 +148,65 @@ def signals_to_evidence(signals: list[Signal], *, now: datetime) -> list[Evidenc
                 timestamp=now,
                 signal_refs=tuple(s.signal_type.value for s in group),
                 redacted_quote=quote,
-                critical=any(s.signal_type in CRITICAL for s in group),
+                critical=_is_critical({s.signal_type for s in group}),
             )
         )
     return out
+
+
+def transaction_evidence(
+    *,
+    transaction_id: str,
+    amount: float,
+    currency: str,
+    history: BeneficiaryHistory,
+    prior_amounts: list[float],
+    now: datetime,
+) -> list[Evidence]:
+    """The account's own facts as citable evidence - the fixtures' ev_62xx / ev_96xx rows.
+
+    Fusion was counting these in the score long before anyone could cite them, so a HOLD driven
+    by an escalating transfer pattern had nothing to point at (rule 4).
+    """
+    claims: list[tuple[str, str, float]] = []  # (key, claim, confidence)
+    if escalating_pattern(prior_amounts, amount):
+        seq = ", ".join(f"{a:g}" for a in prior_amounts)
+        claims.append((
+            "escalating",
+            f"Transfer {len(prior_amounts) + 1} to the same beneficiary, each larger than the "
+            f"last: {seq}, now {amount:g} {currency}.",
+            0.95,
+        ))
+    if history is BeneficiaryHistory.DETAILS_CHANGED:
+        claims.append((
+            "details_changed",
+            "Beneficiary name is unchanged but the account details changed shortly before "
+            "this payment.",
+            0.90,
+        ))
+    if history is BeneficiaryHistory.FIRST_SEEN:
+        claims.append(("first_seen", "First payment to this beneficiary from this account.", 0.95))
+    if history.expected:
+        claims.append((
+            "expected",
+            "Counterparty is one this account pays as a matter of course; the amount is "
+            "consistent with that history.",
+            0.90,
+        ))
+    return [
+        Evidence(
+            evidence_id=_id("ev", transaction_id, key),
+            source_type=SourceType.TRANSACTION,
+            source_ref=transaction_id,
+            claim=claim,
+            confidence=conf,
+            timestamp=now,
+            signal_refs=(),
+            redacted_quote=None,
+            critical=False,
+        )
+        for key, claim, conf in claims
+    ]
 
 
 def assess(
@@ -93,6 +218,11 @@ def assess(
     unusual_destination: bool = False,
     first_time_beneficiary: bool = False,
     advisory_match: bool = False,
+    beneficiary_history: BeneficiaryHistory = BeneficiaryHistory.UNKNOWN,
+    escalating_transfer_pattern: bool = False,
+    high_value: bool = False,
+    unusual_location: bool = False,
+    device_known: bool | None = None,
     degraded: bool = False,
     model_version: str = "mock",
     now: datetime | None = None,
@@ -109,14 +239,37 @@ def assess(
             risk += WEIGHTS.get(s.signal_type, 10.0) * s.confidence
             factors.append(s.signal_type.value)
 
+    history = beneficiary_history
+    first_time = first_time_beneficiary or history is BeneficiaryHistory.FIRST_SEEN
+    # A counterparty this account pays every month is, by definition, a usual destination, and
+    # paying a merchant in the country you are standing in is not an unusual one either. Both
+    # stay visible to the analyst as factors - they just do not count against the customer.
+    dest_is_unusual = unusual_destination and not history.expected
+
+    # Illustrative weights, like everything in thresholds.py. The one worth defending to a judge:
+    # high_value puts any large payment in the step-up band on magnitude alone. It only becomes
+    # an anomaly the gate can hold or escalate on when the counterparty is unexpected too.
     for flag, weight, name in (
-        (unusual_destination, 12.0, "unusual_destination"),
-        (first_time_beneficiary, 10.0, "first_time_beneficiary"),
+        (dest_is_unusual, 12.0, "unusual_destination"),
+        (unusual_location, 32.0, "unusual_location"),
+        (first_time, 10.0, "first_time_beneficiary"),
+        (history is BeneficiaryHistory.RECENT, 8.0, "new_beneficiary"),
+        (history is BeneficiaryHistory.DETAILS_CHANGED, 14.0, "bank_details_changed"),
+        (escalating_transfer_pattern, 12.0, "escalating_transfer_pattern"),
+        (high_value, 34.0, "high_value"),
+        (device_known is False, 8.0, "new_device"),
         (advisory_match, 18.0, "advisory_match"),
     ):
         if flag:
             risk += weight
             factors.append(name)
+
+    # Reassurance is a reason too (rule 4). An analyst should see WHY a 45,000 payment only
+    # warranted a step-up, not merely that it did.
+    if history.expected:
+        factors.append("expected_counterparty")
+    if device_known:
+        factors.append("known_device")
 
     risk_score = max(0, min(100, round(risk)))
 
@@ -131,6 +284,19 @@ def assess(
         confidence = 0.80
 
     confidence *= identity_assurance.confidence_multiplier
+
+    # Contradictory evidence: the counterparty is known but its account changed, and a message
+    # asked for exactly that redirect. Invoice fraud and a genuine banking migration look
+    # identical from here (S06). Two plausible readings means we are materially less sure than
+    # either label's confidence claims - and on a high-impact payment it is that uncertainty,
+    # not the risk score, that sends it to a human (rule.high_impact_low_confidence).
+    contradiction = history is BeneficiaryHistory.DETAILS_CHANGED and any(
+        s.signal_type is SignalType.PAYMENT_REDIRECT and s.confidence >= PRESENCE_FLOOR
+        for s in signals
+    )
+    if contradiction:
+        confidence *= 0.7
+        factors.append("contradictory_evidence")
 
     if degraded:
         # Rule 5: we could not see clearly, and we say so rather than papering over it.

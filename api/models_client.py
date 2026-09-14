@@ -211,7 +211,11 @@ def score_text(source_ref: str, text: str, *, scenario: str | None = None,
 def _from_fixture(scenario: str, source_ref: str) -> list[Signal]:
     fx = load_fixture(scenario)
     sigs = [s for s in fx["signals"] if s["source_ref"] == source_ref]
-    return _parse(sigs or fx["signals"])
+    # No fallback to the whole fixture. A communication with no signals is a clean
+    # communication, and it must score as one - S06's "plausible legitimate explanation" was
+    # coming back carrying the other message's payment_redirect, which doubled the risk and
+    # erased the very contradiction the scenario exists to test.
+    return _parse(sigs)
 
 
 def health() -> dict:

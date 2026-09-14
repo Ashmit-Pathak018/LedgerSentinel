@@ -115,6 +115,19 @@ def _run_live(fx: dict, base: str) -> dict:
         "first_time_beneficiary": txn.get("destination_ref") == "benef_first_seen",
         "identity_assurance": fx["customer"].get("identity_assurance", "BASIC"),
         "scenario": fx["scenario_id"].lower(),
+        # The account's own facts, in the fixture's vocabulary. Dropping these is how the live
+        # path came to disagree with the gate on five of eight scenarios: a fixture that says
+        # "fourth transfer, each larger than the last" was reaching the API as a bare amount.
+        "destination_ref": txn.get("destination_ref"),
+        "prior_transfers_same_beneficiary": txn.get("prior_transfers_same_beneficiary", []),
+        "origin_country": (txn.get("location") or "").rsplit(",", 1)[-1].strip() or None,
+        "device_known": (
+            txn["device"].startswith("dev_known") if txn.get("device") else None
+        ),
+        # The scenario's own premise. S07 is "the advisory index is down mid-analysis" - if the
+        # runner does not pass that through, the one scenario that tests rule 5 end to end runs
+        # against a healthy system and passes for the wrong reason.
+        "advisory_index_available": not fx["assessment"].get("degraded", False),
     }
 
     t0 = time.perf_counter()

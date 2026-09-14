@@ -38,7 +38,9 @@ class Thresholds:
     # weighed the contradiction. That is the exact shape of an expensive mistake.
     escalate_confidence_floor: float = 0.55
 
-    # A transaction at or above this is high-impact and cannot be quietly approved.
+    # A transaction at or above this is high VALUE. It is only high IMPACT - the flag the gate
+    # holds and escalates on - when the counterparty is also unexpected (fusion.is_high_impact).
+    # Value alone is not an anomaly: S05 pays a known supplier 45,000 and is a VERIFY.
     high_impact_amount: float = 10_000.0
 
     # How long COOL_OFF delays a transaction. Long enough to outlast a scammer on the phone,
