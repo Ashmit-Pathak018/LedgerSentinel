@@ -1,0 +1,279 @@
+{
+  "label": "v4-live",
+  "mode": "live (through the API)",
+  "timestamp": "2026-09-14T16:25:55.743742+00:00",
+  "policy_version": "policy-1.2",
+  "cohort": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "S01",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 15000,
+      "communication_count": 2,
+      "has_critical_evidence": true,
+      "evidence_ids": [
+        "ev_af7b120a",
+        "ev_20f36f9a",
+        "ev_e0b85e1c",
+        "ev_6acb3600",
+        "ev_76db7eea"
+      ],
+      "action": "ESCALATE",
+      "human_required": true,
+      "rationale_refs": [
+        "ev_af7b120a",
+        "rule.critical_scam_evidence",
+        "rule.risk_gte_85"
+      ],
+      "confidence": 0.785,
+      "risk_score": 100,
+      "critical_evidence_present": true,
+      "high_impact": true,
+      "latency_ms": 3885.6529999757186,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S02",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 8500,
+      "communication_count": 2,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_3015606e",
+        "ev_e65b8fab",
+        "ev_2153f659",
+        "ev_ff04142b"
+      ],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.risk_60_84"
+      ],
+      "confidence": 0.685,
+      "risk_score": 72,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 3018.8902000081725,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S03",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 22000,
+      "communication_count": 1,
+      "has_critical_evidence": true,
+      "evidence_ids": [
+        "ev_b2a3b53f",
+        "ev_28678c9c",
+        "ev_f5aa07cb"
+      ],
+      "action": "ESCALATE",
+      "human_required": true,
+      "rationale_refs": [
+        "ev_b2a3b53f",
+        "rule.critical_scam_evidence",
+        "rule.risk_gte_85"
+      ],
+      "confidence": 0.89,
+      "risk_score": 100,
+      "critical_evidence_present": true,
+      "high_impact": true,
+      "latency_ms": 3035.5475999531336,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S04",
+      "expected_action": "VERIFY",
+      "gate_action": "VERIFY",
+      "amount": 890,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_16b45743"
+      ],
+      "action": "VERIFY",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.risk_30_59"
+      ],
+      "confidence": 0.8,
+      "risk_score": 32,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 2861.396899970714,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S05",
+      "expected_action": "VERIFY",
+      "gate_action": "VERIFY",
+      "amount": 45000,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_21586390"
+      ],
+      "action": "VERIFY",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.risk_30_59"
+      ],
+      "confidence": 0.8,
+      "risk_score": 34,
+      "critical_evidence_present": false,
+      "high_impact": true,
+      "latency_ms": 2955.5342000094242,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S06",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 30000,
+      "communication_count": 2,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_2e87356f",
+        "ev_cdb10007"
+      ],
+      "action": "ESCALATE",
+      "human_required": true,
+      "rationale_refs": [
+        "rule.high_impact_low_confidence"
+      ],
+      "confidence": 0.427,
+      "risk_score": 78,
+      "critical_evidence_present": false,
+      "high_impact": true,
+      "latency_ms": 3138.249800016638,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S07",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 6200,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_2e0b56d9",
+        "ev_4252be6c"
+      ],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.degraded_fail_toward_oversight"
+      ],
+      "confidence": 0.274,
+      "risk_score": 47,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 3010.372799995821,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S08",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 9400,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_2a080661",
+        "ev_e0b85e1c",
+        "ev_b262c298"
+      ],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.risk_60_84"
+      ],
+      "confidence": 0.775,
+      "risk_score": 83,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 3080.0584999960847,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    }
+  ],
+  "evaluators": {
+    "decision_correctness": {
+      "score": 1.0,
+      "target": 0.9,
+      "pass": true,
+      "detail": "8/8",
+      "failures": []
+    },
+    "critical_evidence_coverage": {
+      "score": 1.0,
+      "target": 0.95,
+      "pass": true,
+      "detail": "2/2",
+      "failures": []
+    },
+    "policy_adherence": {
+      "score": 1.0,
+      "target": 1.0,
+      "pass": true,
+      "detail": "8/8",
+      "failures": []
+    },
+    "grounded_rationale": {
+      "score": 1.0,
+      "target": 0.95,
+      "pass": true,
+      "detail": "12/12",
+      "failures": []
+    },
+    "escalation_safety": {
+      "score": 1.0,
+      "target": 1.0,
+      "pass": true,
+      "detail": "3/3",
+      "failures": []
+    },
+    "loop_discipline": {
+      "score": 1.0,
+      "target": 1.0,
+      "pass": true,
+      "detail": "8/8",
+      "failures": []
+    },
+    "latency_under_10s": {
+      "score": 1.0,
+      "target": 0.95,
+      "pass": true,
+      "detail": "p95 3886ms",
+      "failures": []
+    },
+    "calibration": {
+      "score": 0.9218,
+      "target": 0.8,
+      "pass": true,
+      "detail": "holdout LOO n=160 | ECE 0.078 | 0.06->0.01 (n=122), 0.49->1.00 (n=1), 0.62->0.73 (n=11), 0.81->0.96 (n=26)",
+      "failures": [
+        "bucket 1: stated 0.49 but observed 1.00 - underconfident by 0.51"
+      ]
+    }
+  }
+}

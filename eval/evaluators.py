@@ -22,7 +22,9 @@ than asserted.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 TARGETS: dict[str, float] = {
@@ -186,26 +188,20 @@ def latency_under_10s(runs: list[dict]) -> Result:
     )
 
 
-def calibration(runs: list[dict], bins: int = 4) -> Result:
-    """Does stated confidence track observed correctness?
+_ROOT = Path(__file__).resolve().parents[1]
+HOLDOUT = _ROOT / "model-service" / "data" / "processed" / "holdout.jsonl"
+FIT_PLATT = _ROOT / "model-service" / "calibration" / "fit_platt.py"
+LABELS = (
+    "urgency", "authority_impersonation", "secrecy_request", "remote_access_request",
+    "payment_redirect", "otp_request", "threat", "investment_lure",
+)
 
-    Expected Calibration Error over the cohort: bucket decisions by confidence, compare the
-    average stated confidence in each bucket against the fraction that were actually right.
-    Score is 1 - ECE.
 
-    Honest caveat, and say it on the slide: n=8 is far too small for a real calibration curve.
-    This tells you the direction, not the number. A proper measurement needs Ashmit's labelled
-    holdout with negative examples, which the cohort deliberately does not contain.
-    """
-    if not runs:
-        return Result.of("calibration", 0, 0, [])
-
+def _ece(pairs: list[tuple[float, bool]], bins: int) -> tuple[float, list[str], list[str]]:
+    """Expected Calibration Error: bucket by stated confidence, compare to the observed rate."""
     buckets: dict[int, list[tuple[float, bool]]] = {}
-    for r in runs:
-        c = r["confidence"]
-        buckets.setdefault(min(int(c * bins), bins - 1), []).append(
-            (c, r["action"] == r["expected_action"])
-        )
+    for c, ok in pairs:
+        buckets.setdefault(min(int(c * bins), bins - 1), []).append((c, ok))
 
     ece, lines, fails = 0.0, [], []
     for i in sorted(buckets):
@@ -213,21 +209,106 @@ def calibration(runs: list[dict], bins: int = 4) -> Result:
         stated = sum(c for c, _ in rows) / len(rows)
         observed = sum(1 for _, ok in rows if ok) / len(rows)
         gap = abs(stated - observed)
-        ece += gap * len(rows) / len(runs)
+        ece += gap * len(rows) / len(pairs)
         lines.append(f"{stated:.2f}->{observed:.2f} (n={len(rows)})")
         if gap > 0.25:
+            # The old message said "overconfident" for both directions. S06 and S07 were being
+            # reported as overconfident when they had stated 0.43 and been right - the opposite.
+            direction = "overconfident" if stated > observed else "underconfident"
             fails.append(
                 f"bucket {i}: stated {stated:.2f} but observed {observed:.2f} "
-                f"- overconfident by {gap:.2f}"
+                f"- {direction} by {gap:.2f}"
             )
+    return ece, lines, fails
 
+
+def _holdout_pairs() -> tuple[list[tuple[float, bool]] | None, str]:
+    """Leave-one-out Platt over the labelled holdout.
+
+    Returns one (calibrated score, ground truth) pair per row per label, each row scored by a
+    scaler that never saw it, plus a reason string when it cannot. Uses the service's own
+    fit_one() so what is measured here is exactly what model-service applies - a
+    re-implementation would measure a different scaler.
+    """
+    if not HOLDOUT.exists():
+        return None, "no holdout at model-service/data/processed/holdout.jsonl"
+    if not FIT_PLATT.exists():
+        return None, "model-service/calibration/fit_platt.py missing"
+    try:
+        import importlib.util
+
+        import numpy as np
+
+        spec = importlib.util.spec_from_file_location("fit_platt", FIT_PLATT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        fit_one = mod.fit_one
+    except Exception as e:  # noqa: BLE001 - sklearn absent, or the script changed shape
+        return None, f"cannot load fit_platt ({type(e).__name__}: {e})"
+
+    rows = [json.loads(l) for l in HOLDOUT.read_text(encoding="utf-8").splitlines() if l.strip()]
+    if len(rows) < 10:
+        return None, f"holdout has only {len(rows)} rows"
+
+    pairs: list[tuple[float, bool]] = []
+    for label in LABELS:
+        x = np.array([float(r.get("gemma_raw", {}).get(label, 0.0)) for r in rows])
+        y = np.array([int(r.get("labels", {}).get(label, 0)) for r in rows])
+        if y.sum() == 0 or y.sum() == len(y):
+            continue  # the service passes this label through unfitted; nothing to measure
+        for i in range(len(rows)):
+            m = np.arange(len(rows)) != i
+            if y[m].sum() == 0 or y[m].sum() == m.sum():
+                pairs.append((float(x[i]), bool(y[i])))  # fold lost a class: pass-through
+                continue
+            lr = fit_one(x[m], y[m])
+            pairs.append((float(lr.predict_proba([[x[i]]])[0][1]), bool(y[i])))
+    return pairs, ""
+
+
+def calibration(runs: list[dict], bins: int = 4) -> Result:
+    """Does stated confidence track observed correctness?
+
+    Two measurements, in order of preference. The detail string always says which one you got.
+
+    Holdout (real).    model-service/data/processed/holdout.jsonl carries ground truth for
+                       every label, including benign rows. Fit Platt leave-one-out and take
+                       ECE over every (row, label) pair. This is calibration in the textbook
+                       sense: when the extractor says 0.8, is it right about 80% of the time?
+
+    Cohort (proxy).    Only when the holdout cannot be used. Bucket the eight scenarios by
+                       assessment confidence against whether the action was correct. n=8, no
+                       negatives, and it measures the wrong thing: S06 and S07 state low
+                       confidence *by design*, and their actions are correct *because* that
+                       low confidence moved the ladder up. The proxy reads the thesis working
+                       as miscalibration. Direction only, never a number for a slide.
+    """
+    holdout, why_not = _holdout_pairs()
+    if holdout:
+        ece, lines, fails = _ece(holdout, bins)
+        score = max(0.0, 1.0 - ece)
+        return Result(
+            name="calibration",
+            score=score,
+            target=TARGETS["calibration"],
+            passed=score >= TARGETS["calibration"],
+            detail=f"holdout LOO n={len(holdout)} | ECE {ece:.3f} | " + ", ".join(lines),
+            failures=fails,
+        )
+
+    if not runs:
+        return Result.of("calibration", 0, 0, [])
+
+    ece, lines, fails = _ece(
+        [(r["confidence"], r["action"] == r["expected_action"]) for r in runs], bins
+    )
     score = max(0.0, 1.0 - ece)
     return Result(
         name="calibration",
         score=score,
         target=TARGETS["calibration"],
         passed=score >= TARGETS["calibration"],
-        detail=f"ECE {ece:.3f} | " + ", ".join(lines),
+        detail=f"cohort PROXY n={len(runs)} ({why_not}) | ECE {ece:.3f} | " + ", ".join(lines),
         failures=fails,
     )
 

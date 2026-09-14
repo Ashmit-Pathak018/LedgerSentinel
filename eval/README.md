@@ -103,26 +103,49 @@ Then rerun the identical cohort as `v2` and `--compare v1 v2`.
 
 ---
 
-## Finding 2 — under-confidence in the low band
+## Finding 2 — the calibration metric was measuring the wrong thing
 
-ECE 0.252. The system is **under**-confident, not over-confident:
+V1 and V2 reported ECE 0.252 (74.8%) from an 8-scenario proxy:
 
 ```
 stated 0.43  →  observed 1.00  (n=2)     ← S06, S07
 stated 0.85  →  observed 1.00  (n=6)
 ```
 
-Every low-confidence decision was actually correct. Reporting 0.43 confidence on calls it got
-right means the confidence number is pessimistic, which costs autonomy the system had earned.
+Read literally that says "under-confident". Read properly it says the proxy is wrong. S06 and
+S07 state low confidence **by design** - the evidence genuinely conflicts, the advisory index
+is genuinely down - and their actions are correct **because** that low confidence moved them up
+the ladder. The proxy scored the thesis working as a calibration failure. With every action
+correct and no negatives, "1 − ECE" over the cohort collapses to "mean confidence", which just
+rewards saying 0.9.
 
-**Say the caveat out loud: n=8 is far too small for a real calibration curve.** This is a
-direction, not a number. A defensible measurement needs Ashmit's labelled holdout with
-**negative** examples — signals that were predicted and were genuinely absent. The cohort
-deliberately contains none, because every fixture was authored as a true positive.
+**V4 measures calibration where it can be measured.** `model-service/data/processed/holdout.jsonl`
+has ground truth for all 8 labels across 20 texts, including 10 benign ones. The evaluator fits
+Platt scaling **leave-one-out** - every row is scored by a scaler that never saw it - and takes
+ECE over all 160 (row, label) pairs, using the service's own `fit_one()` so it measures exactly
+the scaler that ships:
 
-That is a finding in itself: *we can only measure calibration once we have data that can prove
-us wrong.* Worth saying to a technical judge — it lands better than a confident number from
-eight samples.
+```
+holdout LOO n=160 | ECE 0.078 | 0.06->0.01 (n=122), 0.62->0.73 (n=11), 0.81->0.96 (n=26)
+calibration   92.2%   target 80%   PASS
+```
+
+When the extractor says ~0.8 it is right ~96% of the time; when it says ~0.06 it is right ~1%.
+That is the sentence for the slide. The cohort proxy still runs when there is no holdout, and
+its detail string now says `cohort PROXY` so nobody puts it on a slide again.
+
+**Two caveats, say both.** Twenty rows is small - the script warns at under 150 - and the ten
+benign texts all scored exactly 0.0 on every label, so the only hard negatives are the scam
+scenarios where a label was present but a different one fired. And the scaler is Qwen's:
+`calibration/scaler.meta.json` records the model it was fit on, and a different extractor
+needs a refit (`python calibration/fit_platt.py` from `model-service/`).
+
+**What the refit found.** Ashmit's `fit_platt.py` used sklearn's default `C=1.0`, an L2
+penalty sized for many features and rows. On one feature and twenty rows it crushed the slope:
+raw 0.95 for `remote_access_request` calibrated to **0.24**. The API drops anything under
+`PRESENCE_FLOOR = 0.50`, so the first scaler would have erased the two labels that force an
+escalation and S03 would have stopped escalating - silently, on the real-inference path only.
+Now unregularised with Platt's smoothed targets, as Platt scaling is defined.
 
 ---
 
@@ -137,7 +160,7 @@ eight samples.
 | `escalation_safety` | High-impact uncertainty reached a named human | 100% |
 | `loop_discipline` | ≤ 1 model call per communication, no retries | 100% |
 | `latency_under_10s` | End-to-end analysis stays under 10 s | ≥ 95% |
-| `calibration` | 1 − ECE over the cohort | ≥ 80% |
+| `calibration` | 1 − ECE, leave-one-out Platt over the labelled holdout (cohort proxy if absent) | ≥ 80% |
 
 Every evaluator names the scenarios that failed. A bare percentage is not something you can act
 on at hour 19.

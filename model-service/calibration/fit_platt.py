@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import pickle
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -65,6 +67,44 @@ def load_holdout(path: Path) -> tuple[dict[str, np.ndarray], dict[str, np.ndarra
     )
 
 
+def fit_one(x: np.ndarray, y: np.ndarray) -> LogisticRegression:
+    """Platt scaling proper, for one label: sigmoid(a·score + b), fit as Platt described it.
+
+    Two things sklearn's defaults get wrong for this job, both of which bit us:
+
+      No regularisation.   LogisticRegression defaults to C=1.0, an L2 penalty sized for
+                           many features and many rows. On one feature and twenty rows it
+                           crushes the slope toward the base rate: a raw 0.95 for
+                           remote_access_request came out as 0.24. The API drops any signal
+                           under PRESENCE_FLOOR (0.50), so that scaler would have silently
+                           erased the two labels that force an escalation. C is set very
+                           large, which is the unregularised fit Platt scaling means.
+
+      Smoothed targets.    With this few points the classes are near-separable and an
+                           unregularised fit goes vertical - every positive becomes 0.999.
+                           Platt's own fix: train on t+ = (N+ + 1)/(N+ + 2) and
+                           t- = 1/(N- + 2) instead of 1 and 0. sklearn only takes hard
+                           labels, so each row is entered twice, as a positive weighted t
+                           and a negative weighted 1 - t, which is the same likelihood.
+
+    The evaluator in eval/evaluators.py imports this function so that what it measures is
+    exactly what the service applies. Change it here, not there.
+    """
+    n_pos = int(y.sum())
+    n_neg = int(len(y) - n_pos)
+    t_pos = (n_pos + 1.0) / (n_pos + 2.0)
+    t_neg = 1.0 / (n_neg + 2.0)
+    t = np.where(y == 1, t_pos, t_neg)
+
+    X2 = np.concatenate([x, x]).reshape(-1, 1)
+    y2 = np.concatenate([np.ones_like(y), np.zeros_like(y)])
+    w2 = np.concatenate([t, 1.0 - t])
+
+    lr = LogisticRegression(C=1e6, solver="lbfgs", max_iter=5000)
+    lr.fit(X2, y2, sample_weight=w2)
+    return lr
+
+
 def fit_platt(
     raw_scores: dict[str, np.ndarray],
     y_true:     dict[str, np.ndarray],
@@ -73,7 +113,7 @@ def fit_platt(
     scalers: dict[str, LogisticRegression] = {}
 
     for label in EIGHT_LABELS:
-        X = raw_scores[label].reshape(-1, 1)
+        X = raw_scores[label]
         y = y_true[label]
 
         n_pos = int(y.sum())
@@ -86,16 +126,17 @@ def fit_platt(
             )
             continue
 
-        lr = LogisticRegression(solver="lbfgs", max_iter=1000)
-        lr.fit(X, y)
+        lr = fit_one(X, y)
         scalers[label] = lr
 
-        # Calibration quality check
-        cal_probs = lr.predict_proba(X)[:, 1]
+        # Calibration quality check. In-sample, so optimistic - the honest number is the
+        # leave-one-out ECE that eval/run.py reports.
+        cal_probs = lr.predict_proba(X.reshape(-1, 1))[:, 1]
         brier = brier_score_loss(y, cal_probs)
         logger.info(
-            "  %-25s  pos=%3d  neg=%3d  brier=%.4f",
+            "  %-25s  pos=%3d  neg=%3d  brier=%.4f   raw 0.9 -> %.2f, raw 0.0 -> %.2f",
             label, n_pos, n_neg, brier,
+            lr.predict_proba([[0.9]])[0][1], lr.predict_proba([[0.0]])[0][1],
         )
 
     return scalers
@@ -135,6 +176,28 @@ def main() -> None:
     with open(SCALER_OUTPUT, "wb") as f:
         pickle.dump(scalers, f)
     logger.info("Saved %d scalers to %s", len(scalers), SCALER_OUTPUT)
+
+    # A scaler is only valid for the model whose raw scores it was fit on (rule 8). Record
+    # which, so a Gemma scaler is never quietly applied to Qwen output or vice versa.
+    try:
+        # Run as `python calibration/fit_platt.py`, sys.path[0] is calibration/, not the
+        # service root, so `app` is not importable without this.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from app.config import get_settings  # the service's own view of .env
+
+        model_version = get_settings().MODEL_VERSION
+    except Exception:  # noqa: BLE001 - run from outside model-service/, or field renamed
+        model_version = os.getenv("MODEL_VERSION", "unknown")
+    meta = {
+        "model_version": model_version,
+        "holdout_rows": n_samples,
+        "labels_fitted": sorted(scalers),
+        "fitted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    SCALER_OUTPUT.with_suffix(".meta.json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
+    logger.info("Scaler metadata: %s", meta)
 
 
 if __name__ == "__main__":

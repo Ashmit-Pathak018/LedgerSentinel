@@ -1,0 +1,15 @@
+{
+  "model_version": "qwen3-4b@2026-09-14",
+  "holdout_rows": 20,
+  "labels_fitted": [
+    "authority_impersonation",
+    "investment_lure",
+    "otp_request",
+    "payment_redirect",
+    "remote_access_request",
+    "secrecy_request",
+    "threat",
+    "urgency"
+  ],
+  "fitted_at": "2026-09-14T16:25:27+00:00"
+}

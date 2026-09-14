@@ -18,6 +18,12 @@ python eval/run.py --label dev          # the 8-scenario PRISM cohort, in-proces
 python eval/run.py --live --label dev   # the SAME cohort through the running API
 ```
 
+**Calibration is measured on the holdout, not the cohort.** `eval/evaluators.py` fits Platt
+leave-one-out over `model-service/data/processed/holdout.jsonl` using the service's own
+`fit_one()`. If you change the extractor model or the holdout, refit the shipped scaler
+(`cd model-service && python calibration/fit_platt.py`) - `calibration/scaler.meta.json` records
+which model it belongs to. A scaler fit on one model's raw scores is wrong for another (rule 8).
+
 **Run the cohort both ways.** In-process feeds the gate the fixture's hand-authored assessment
 and only proves the gate. `--live` is the path the dashboard and the demo actually use - it
 recomputes the assessment from signals and account facts through `api/advisory.py` and
