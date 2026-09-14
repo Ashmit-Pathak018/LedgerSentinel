@@ -1,0 +1,92 @@
+{
+  "scenario_id": "S04",
+  "description": "Legitimate overseas travel. Location is abnormal and a naive geo-rule would block it, but history supports legitimacy and there is no coercive communication evidence. This is the false-positive guard - demo it second, right after S01, to show the system is not just a blunt blocker.",
+  "expected_action": "VERIFY",
+
+  "transaction": {
+    "transaction_id": "txn_031",
+    "customer_id": "cust_2210",
+    "account_id": "acct_4402",
+    "amount": 890,
+    "currency": "EUR",
+    "destination_country": "IT",
+    "destination_ref": "merchant_retail",
+    "timestamp": "2026-09-14T14:02:55Z",
+    "location": "Florence, IT",
+    "device": "dev_known_3391",
+    "communication_ids": ["comm_805"]
+  },
+
+  "customer": {
+    "customer_id": "cust_2210",
+    "age_band": "35-44",
+    "account_age_days": 2190,
+    "identity_assurance": "STRONG",
+    "normal_activity": "Frequent international travel. Prior transactions in FR, ES, DE."
+  },
+
+  "signals": [],
+
+  "evidence": [
+    {
+      "evidence_id": "ev_5501",
+      "source_type": "communication",
+      "source_ref": "comm_805",
+      "claim": "No coercive, impersonation, or redirection language detected across the customer's communications in the analysis window",
+      "confidence": 0.91,
+      "timestamp": "2026-09-14T14:02:00Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_5502",
+      "source_type": "transaction",
+      "source_ref": "txn_031",
+      "claim": "Amount is within the customer's normal range and the merchant category matches prior travel spending in three other EU countries",
+      "confidence": 0.89,
+      "timestamp": "2026-09-14T14:02:55Z",
+      "signal_refs": [],
+      "critical": false
+    },
+    {
+      "evidence_id": "ev_5503",
+      "source_type": "identity",
+      "source_ref": "cust_2210",
+      "claim": "Transaction originated from a long-registered device with strong identity assurance",
+      "confidence": 0.94,
+      "timestamp": "2026-09-14T14:02:55Z",
+      "signal_refs": [],
+      "critical": false
+    }
+  ],
+
+  "assessment": {
+    "assessment_id": "as_1140",
+    "transaction_id": "txn_031",
+    "risk_score": 34,
+    "confidence": 0.90,
+    "factors": ["unusual_location", "no_coercive_evidence", "consistent_with_history", "known_device"],
+    "evidence_ids": ["ev_5501", "ev_5502", "ev_5503"],
+    "identity_assurance": "STRONG",
+    "critical_evidence_present": false,
+    "degraded": false,
+    "model_version": "gemma3n-e4b@2026-09-14",
+    "created_at": "2026-09-14T14:03:01Z"
+  },
+
+  "decision": {
+    "decision_id": "dec_1140",
+    "transaction_id": "txn_031",
+    "assessment_id": "as_1140",
+    "action": "VERIFY",
+    "human_required": false,
+    "policy_version": "policy-1.2",
+    "rationale_refs": ["ev_5502", "ev_5503", "rule.risk_30_59"],
+    "trace_id": "prism-def456",
+    "proposal_rejected": false,
+    "verification_channel": "app_push",
+    "created_at": "2026-09-14T14:03:01Z"
+  },
+
+  "demo_note": "Risk is 34, not 3 - the unusual location genuinely is a signal and we do not pretend otherwise. But with no coercive evidence and strong identity assurance, the response is a proportionate app-push challenge rather than a block. This is the slide that answers 'won't this annoy every traveller?'"
+}

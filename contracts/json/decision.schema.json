@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgersentinel.dev/schemas/decision.schema.json",
+  "title": "Decision",
+  "description": "The authorised outcome. ONLY the deterministic policy gate produces a Decision. No model, prompt, or inference service may ever emit one - that is rule 1. Every Decision is reproducible: given the same Assessment and the same policy_version, the gate returns the same action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision_id", "transaction_id", "action", "human_required", "policy_version", "rationale_refs", "trace_id"],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "pattern": "^dec_[A-Za-z0-9_-]+$"
+    },
+    "transaction_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assessment_id": {
+      "type": "string"
+    },
+    "action": {
+      "description": "The rung of the ladder, in descending order of AI autonomy. HOLD pauses and queues for review; ESCALATE pauses and requires a named human - the system may never release it alone.",
+      "type": "string",
+      "enum": ["APPROVE", "VERIFY", "COOL_OFF", "HOLD", "ESCALATE"]
+    },
+    "human_required": {
+      "description": "Must be true whenever action is ESCALATE. High-impact uncertainty always reaches a person.",
+      "type": "boolean"
+    },
+    "policy_version": {
+      "description": "Which ruleset produced this, e.g. policy-1.2. Required so a V1/V2 comparison is meaningful.",
+      "type": "string",
+      "minLength": 1
+    },
+    "rationale_refs": {
+      "description": "Every reason for this action, as either an evidence id (ev_*) or a policy rule id (rule.*). An empty array is a bug: a decision nobody can explain.",
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "trace_id": {
+      "description": "PRISM trace this decision belongs to. Required on every decision, no exceptions.",
+      "type": "string",
+      "minLength": 1
+    },
+    "proposal_rejected": {
+      "description": "True when the gate overrode what the AI proposed. These are the most interesting rows in the audit log - they are the bounded-autonomy story.",
+      "type": "boolean",
+      "default": false
+    },
+    "cool_off_seconds": {
+      "description": "Required when action is COOL_OFF. How long the transaction is delayed.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "hold_expires_at": {
+      "description": "Present when action is HOLD. Holds are time-boxed and reversible by design.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "verification_channel": {
+      "description": "Required when action is VERIFY. Must be out-of-band - a channel the scammer is not already sitting on.",
+      "type": "string",
+      "enum": ["app_push", "branch_callback", "registered_email", "in_person"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "ESCALATE" } }, "required": ["action"] },
+      "then": { "properties": { "human_required": { "const": true } } }
+    },
+    {
+      "if": { "properties": { "action": { "const": "COOL_OFF" } }, "required": ["action"] },
+      "then": { "required": ["cool_off_seconds"] }
+    },
+    {
+      "if": { "properties": { "action": { "const": "VERIFY" } }, "required": ["action"] },
+      "then": { "required": ["verification_channel"] }
+    }
+  ]
+}

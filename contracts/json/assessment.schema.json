@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgersentinel.dev/schemas/assessment.schema.json",
+  "title": "Assessment",
+  "description": "The output of evidence fusion: how bad this looks (risk_score) and how sure we are (confidence), held as two SEPARATE values. An Assessment is not a decision - it is the input the deterministic policy gate reasons over.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assessment_id", "transaction_id", "risk_score", "confidence", "factors", "evidence_ids", "model_version"],
+  "properties": {
+    "assessment_id": {
+      "type": "string",
+      "pattern": "^as_[A-Za-z0-9_-]+$"
+    },
+    "transaction_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_score": {
+      "description": "How dangerous this transaction looks, 0-100. Independent of confidence. NEVER multiply these two together.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "confidence": {
+      "description": "How sure the system is of its own assessment, 0-1. Low confidence reduces AI autonomy; it does not change risk.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "factors": {
+      "description": "Short machine-readable reasons that drove the score. Shown to the analyst. A risk score with an empty factors array is a bug - see rule 4.",
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "evidence_ids": {
+      "description": "Every Evidence object considered. The UI links these; the audit trail stores them.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "identity_assurance": {
+      "description": "Customer identity-assurance level at assessment time. Weak assurance lowers confidence.",
+      "type": "string",
+      "enum": ["NONE", "BASIC", "VERIFIED", "STRONG"]
+    },
+    "critical_evidence_present": {
+      "description": "True when any consumed Evidence is marked critical. The state machine may not propose a decision while critical evidence is unconsumed.",
+      "type": "boolean",
+      "default": false
+    },
+    "degraded": {
+      "description": "True when a component failed - retrieval down, model timeout, consent revoked. Per the fail-toward-oversight rule this must lower confidence and can never yield APPROVE.",
+      "type": "boolean",
+      "default": false
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -277,6 +277,16 @@ cd web && npm install && npm run dev      # :5173
 Set `MODELS_MOCK=true` to run the backend against fixture signals with no model service at all.
 **Keep this flag working for the entire build** — it is the demo's fallback path.
 
+```bash
+# 4. Validate the frozen contracts (run after ANY contract change)
+python -m pip install jsonschema
+python contracts/validate.py
+```
+
+See [`contracts/`](contracts/) for the frozen data shapes, [`contracts/ENDPOINTS.md`](contracts/ENDPOINTS.md)
+for every endpoint with request/response examples, and `contracts/fixtures/` for complete
+scenario data you can build against before anything real exists.
+
 ---
 
 ## Build phases

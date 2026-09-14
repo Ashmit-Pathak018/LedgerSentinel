@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgersentinel.dev/schemas/signal.schema.json",
+  "title": "Signal",
+  "description": "One scam-intent indicator extracted from a single communication by the model service. A Signal describes evidence. It NEVER contains an action, a recommendation, or a decision - only the deterministic policy gate produces those.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["signal_type", "value", "confidence", "source_ref"],
+  "properties": {
+    "signal_type": {
+      "description": "Which of the eight frozen scam-intent labels this is.",
+      "type": "string",
+      "enum": [
+        "urgency",
+        "authority_impersonation",
+        "secrecy_request",
+        "remote_access_request",
+        "payment_redirect",
+        "otp_request",
+        "threat",
+        "investment_lure"
+      ]
+    },
+    "value": {
+      "description": "Raw model score before calibration. Useful for debugging; do NOT use this for decisions - use confidence.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "confidence": {
+      "description": "CALIBRATED probability that this signal is genuinely present, post Platt scaling. This is the number fusion and the policy gate consume.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source_ref": {
+      "description": "Id of the communication this was extracted from, e.g. comm_771.",
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_span": {
+      "description": "Character offsets [start, end) into the REDACTED text, locating the phrase that produced this signal. Used by the UI to highlight in place.",
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "redacted_quote": {
+      "description": "At most one short phrase, already redacted, shown to the analyst as justification. Never the full message body.",
+      "type": "string",
+      "maxLength": 200
+    },
+    "model_version": {
+      "description": "Which model and weights produced this, e.g. gemma3n-e4b@2026-09-14.",
+      "type": "string"
+    }
+  }
+}

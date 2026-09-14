@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgersentinel.dev/schemas/evidence.schema.json",
+  "title": "Evidence",
+  "description": "A normalised, storable claim that supports or undermines a decision. Evidence is what the analyst reads and what every rationale must point at. It deliberately CANNOT hold a message body - only a claim, a pointer back to the source, and at most one short redacted quote.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evidence_id", "source_type", "source_ref", "claim", "confidence", "timestamp"],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^ev_[A-Za-z0-9_-]+$"
+    },
+    "source_type": {
+      "description": "Where this claim came from. 'identity' covers KYC / identity-assurance findings.",
+      "type": "string",
+      "enum": ["communication", "transaction", "advisory", "identity"]
+    },
+    "source_ref": {
+      "description": "Id of the originating object: comm_771, txn_018, adv_0032, cust_1042.",
+      "type": "string",
+      "minLength": 1
+    },
+    "claim": {
+      "description": "One sentence, human readable, stating what this evidence asserts. The LLM may write this, but it must be entailed by the signals - never invented.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+    },
+    "confidence": {
+      "description": "Calibrated confidence that the claim holds. Carried forward from the contributing signals.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "timestamp": {
+      "description": "When the underlying event occurred, not when we processed it.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "signal_refs": {
+      "description": "The signals that produced this claim. Provenance - an evidence item with no signals and no policy rule behind it is a bug.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "redacted_quote": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "critical": {
+      "description": "True when this evidence alone is enough to force the top of the ladder, e.g. a confirmed remote-access request. Critical evidence MUST be consumed before a decision can be proposed.",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

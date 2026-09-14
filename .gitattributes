@@ -1,0 +1,35 @@
+# Normalise line endings so three people on three machines don't generate
+# whole-file diffs every time someone saves.
+* text=auto eol=lf
+
+# Windows-native tooling expects CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Maven wrapper
+mvnw    text eol=lf
+*.sh    text eol=lf
+
+# Binary - never touch, never diff as text
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.pptx  binary
+*.wav   binary
+*.mp3   binary
+*.m4a   binary
+*.jar   binary
+*.onnx  binary
+*.gguf  binary
+*.safetensors binary
+*.pkl   binary
+*.joblib binary
+
+# Collapse noisy generated files in PR diffs
+package-lock.json linguist-generated=true
