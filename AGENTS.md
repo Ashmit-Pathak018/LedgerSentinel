@@ -36,14 +36,56 @@ something is covered, assume it is not and wire it.
 - `session_id` is the `trace_id` minted in `analyze()` (`prism-xxxxxxxx`). One transaction
   analysis is one PRISM session, so its model calls and its gate decision form one trajectory.
   Reuse it rather than inventing a new id.
-- `operation` follows the GenAI convention: `chat` for model calls, `execute_tool` for the
-  policy gate, `invoke_agent` for a whole analysis.
+- `operation` follows the GenAI convention: `execute_tool` for the policy gate and for signal
+  extraction (it is a classifier call, not a conversation), `invoke_agent` for a whole analysis.
+  Note that PRISM's trace list does not surface `metadata`, so you cannot filter on this from
+  the API — group by the `model` field instead.
 - **Never trace an unredacted message.** Rule 6 redacts before inference and rule 7 forbids
   storing message bodies — so traces carry the redacted excerpt and the derived signals, never
   a raw body. `api/prism.py` is the only place that talks to PRISM; keep it that way.
 - Tracing is fire-and-forget on a daemon thread and swallows every exception. PRISM being down
   must never delay or fail a fraud decision. Do not make it blocking.
 - With no API key set, tracing is a no-op. A fresh clone runs untraced rather than erroring.
+
+### Reading PRISM's scores for this project — read this before acting on them
+
+**The ~74% flag rate is a rubric mismatch, not a quality problem. Do not "fix" it.**
+
+PRISM's evaluator grades `input_messages`/`output_message` as a **customer-service
+conversation** and scores customer satisfaction. LedgerSentinel is a classifier plus a policy
+gate, so the rubric does not fit — and it fails in one specific, dangerous direction. Grouping
+our own gate spans by what the gate actually did:
+
+| Gate spans | n | avg satisfaction | flagged |
+|---|---|---|---|
+| high risk → escalated | 15 | **26.3** | 14/15 |
+| low risk → approved | 17 | **60.3** | 3/17 |
+
+**A correct escalation costs 34 points.** The evaluator's own reasons say why: an intercepted
+scam line (`"send it to the safe account instead"`) is read as *the customer's clear request*,
+and a correct ESCALATE is flagged as *"immediately escalates without attempting to address the
+customer's transaction inquiry, resulting in poor user experience."* Optimising this metric
+means missing fraud. Do not optimise this metric.
+
+Measured attempts to re-point the rubric from the client, so nobody repeats them:
+
+| Attempt | Result |
+|---|---|
+| Prepend a system message framing the task (`_FRAMING` in `api/prism.py`) | **Strictly worse.** Gate spans scored **0**, flagged as *"a policy gate system prompt attempting to override the evaluator's instructions"*. Reverted — see the `_framed()` docstring. |
+| Natural-language payloads: wrap evidence in `<communication>`, describe outputs in prose | Extraction 18.4 → 22.5, **still 100% flagged**. Kept: marginal, but the traces are more readable. |
+| Retype extraction from `chat` to `execute_tool` | No measurable effect — `metadata` is not surfaced in the trace list, and grading was unchanged. Kept anyway, because it is simply the correct span type. |
+
+The conclusion after three attempts: **the evaluator applies a fixed rubric that cannot be
+re-pointed from the trace payload.** Stop trying.
+
+**What to trust instead.** Latency, trace volume, session/trajectory assembly, error and
+guardrail status are all accurate and genuinely useful — that is what PRISM is earning its
+place for here. For quality, use `eval/run.py`: it scores the 8-scenario cohort against
+*this* system's contract (correct action, evidence citation, calibration), which is what the
+V1 → V2 critical-evidence fix was found and proven with.
+
+**Do not spend credits on RCA clustering of these flags.** It would cluster a rubric mismatch
+and produce confident findings about a customer-service agent nobody built.
 
 ### Not yet wired
 

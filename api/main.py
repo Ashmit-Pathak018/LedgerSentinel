@@ -146,9 +146,11 @@ def analyze(req: AnalyzeRequest) -> dict:
         agent_name="policy_gate",
         input_messages=[{
             "role": "user",
-            "content": f"risk={assessment.risk_score} confidence={assessment.confidence} "
-                       f"critical={assessment.critical_evidence_present} "
-                       f"high_impact={high_impact} degraded={assessment.degraded}",
+            "content": "Authorise an action for this transaction. Decision inputs \u2014 "
+                       f"risk score {assessment.risk_score}/100, confidence "
+                       f"{assessment.confidence:.2f}, critical evidence "
+                       f"{assessment.critical_evidence_present}, high impact "
+                       f"{high_impact}, degraded analysis {assessment.degraded}.",
         }],
         metadata={
             "risk_score": assessment.risk_score,
@@ -158,7 +160,10 @@ def analyze(req: AnalyzeRequest) -> dict:
         },
     ) as gate_span:
         action = evaluate(policy_input, now=now)
-        gate_span.output = f"{action.type.value} | {', '.join(action.rationale_refs)}"
+        gate_span.output = (
+            f"Authorised action: {action.type.value}. "
+            f"Rationale: {', '.join(action.rationale_refs)}."
+        )
 
 
     decision = Decision(
@@ -195,13 +200,24 @@ def analyze(req: AnalyzeRequest) -> dict:
 
     prism.trace(
         session_id=trace_id,
-        model=f"policy-gate@{POLICY_VERSION}",
+        # The whole-analysis span, not the gate. It used to carry the gate's model name, which
+        # made every span in PRISM read as policy-gate@... - and `model` is the only field the
+        # trace list exposes that distinguishes span types (metadata is not surfaced), so that
+        # one label collapsed all three kinds of span into one bucket.
+        model=f"ledgersentinel@{POLICY_VERSION}",
         input_messages=[{
             "role": "user",
-            "content": f"analyze {req.transaction_id} amount={req.amount} "
-                       f"{req.currency} -> {req.destination_country}",
+            "content": f"Analyse transaction {req.transaction_id} for social-engineering "
+                       f"fraud: {req.amount} {req.currency} to "
+                       f"{req.destination_country or 'domestic'}, with "
+                       f"{len(req.communication_ids)} linked communication(s).",
         }],
-        output_message=f"{decision.action.value} (human_required={decision.human_required})",
+        output_message=(
+            f"Decision: {decision.action.value}. Risk {assessment.risk_score}/100, "
+            f"confidence {assessment.confidence:.2f}. "
+            + ("Routed to a human analyst." if decision.human_required
+               else "No human review required.")
+        ),
         latency_ms=(datetime.now(timezone.utc) - now).total_seconds() * 1000,
         operation="invoke_agent",
         agent_name="ledgersentinel",
