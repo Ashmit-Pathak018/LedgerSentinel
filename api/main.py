@@ -19,6 +19,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
+
+# Load api/.env before anything reads os.getenv. Without this, SUPABASE_URL is invisible
+# and the store silently falls back to memory - which looks like a Supabase failure but
+# is really just an unloaded env file.
+load_dotenv()
+
 import _contracts_path  # noqa: F401
 from contracts import (
     ActionType,
