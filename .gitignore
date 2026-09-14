@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+*.local
+npm-debug.log*
+
+# Secrets - never commit these. Supabase keys, model endpoints, anything with a token.
+.env.*
+!.env.example
+secrets.env
+*.key
+*.pem
+
+# Models and large artefacts - these live in Ollama or a release, never in git
+*.gguf
+*.onnx
+*.safetensors
+*.bin
+models/weights/
+models/.cache/
+
+# Evaluation output - regenerate it, don't version it
+eval/runs/
+eval/out/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

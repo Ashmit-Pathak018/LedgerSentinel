@@ -1,16 +1,16 @@
 # Endpoints
 
-Two services. The frontend only ever talks to Spring Boot; only Spring Boot talks to the model
+Two services, both FastAPI. The frontend only ever talks to `api/`; only `api/` talks to the model
 service. **Every endpoint below is part of the frozen contract** — same rules as the data shapes.
 
 | Service | Port | Owner |
 |---|---|---|
-| Spring Boot API | `8080` | Yashraj |
+| `api/` FastAPI | `8080` | Yashraj |
 | Model service (FastAPI) | `8000` | Ashmit |
 
 ---
 
-## Spring Boot — `:8080`
+## `api/` — `:8080`
 
 What React calls.
 
@@ -87,8 +87,8 @@ Uniform shape, and note what the status codes do **not** include: there is no "f
 
 ## Model service — `:8000`
 
-What Spring Boot calls. **These endpoints return `Signal[]` and nothing else.** If a response
-ever carries an `action`, `recommendation`, or `decision` field, Spring rejects it with `422` —
+What `api/` calls. **These endpoints return `Signal[]` and nothing else.** If a response ever
+carries an `action`, `recommendation`, or `decision` field, `api/` rejects it with `422` —
 that is rule 1 enforced on the wire.
 
 | Method | Path | In | Out |
@@ -102,7 +102,7 @@ that is rule 1 enforced on the wire.
 ### `POST /model/text/score`
 
 ```jsonc
-// request — text is ALREADY REDACTED by Spring before it gets here (rule 6)
+// request - text is ALREADY REDACTED by api/ before it gets here (rule 6)
 {
   "source_ref": "comm_771",
   "text": "This is [NAME] from [BANK] security. Your account is compromised...",
@@ -144,20 +144,20 @@ than waiting for the call to end.
 }
 ```
 
-Spring reads `p95_latency_ms` to set its timeout budget. Ashmit: publish this number early — it is
+`api/` reads `p95_latency_ms` to set its timeout budget. Ashmit: publish this number early — it is
 what stops Yashraj from guessing.
 
 ---
 
 ## Mocks
 
-`MODELS_MOCK=true` makes Spring serve fixture signals from `contracts/fixtures/` instead of calling
+`MODELS_MOCK=true` makes `api/` serve fixture signals from `contracts/fixtures/` instead of calling
 `:8000` at all. Same shapes, same code path, no model service required.
 
 **Keep this working for the entire build.** It is how Yash and Yashraj stay unblocked while Ashmit
 is still training, and it is the demo's fallback if anything fails on stage.
 
 ```bash
-MODELS_MOCK=true   ./mvnw spring-boot:run   # fixtures
-MODELS_MOCK=false  ./mvnw spring-boot:run   # real inference on :8000
+MODELS_MOCK=true   uvicorn main:app --reload --port 8080   # fixtures
+MODELS_MOCK=false  uvicorn main:app --reload --port 8080   # real inference on :8000
 ```

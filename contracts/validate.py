@@ -44,6 +44,43 @@ def load(p: pathlib.Path):
         return None
 
 
+def _check_python_models() -> None:
+    """Round-trip every fixture through the Pydantic models.
+
+    This is what catches drift between contracts/py/contracts.py and the JSON schemas - the
+    two are mirrors kept in sync by hand, so something has to check they still agree.
+    Skipped if pydantic is not installed, so the schema check still runs standalone.
+    """
+    sys.path.insert(0, str(ROOT / "py"))
+    try:
+        from contracts import Assessment, Decision, Evidence, Signal  # noqa: PLC0415
+    except ImportError:
+        print("\npython models\n  skip  (pydantic not installed)")
+        return
+
+    print("\npython models")
+    for path in sorted(FIXTURES.glob("*.json")):
+        fx = load(path)
+        if fx is None:
+            continue
+        sid = fx.get("scenario_id", path.stem)
+        try:
+            for s in fx.get("signals", []):
+                Signal(**s)
+            for e in fx.get("evidence", []):
+                Evidence(**e)
+            if fx.get("assessment"):
+                Assessment(**fx["assessment"])
+            if fx.get("decision"):
+                Decision(**fx["decision"])
+        except Exception as e:  # pydantic ValidationError or anything else
+            first = str(e).splitlines()
+            fail(f"{sid}: Pydantic rejected a fixture the schema accepted - "
+                 f"contracts.py has drifted. {first[1].strip() if len(first) > 1 else e}")
+        else:
+            print(f"  ok    {sid}")
+
+
 def main() -> int:
     schemas = {}
     print("schemas")
@@ -108,6 +145,8 @@ def main() -> int:
 
         if not failures:
             print(f"  ok    {path.name}  ({sid} -> {fx.get('expected_action')})")
+
+    _check_python_models()
 
     print()
     if failures:

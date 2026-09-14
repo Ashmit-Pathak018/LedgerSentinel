@@ -69,38 +69,45 @@ do not let a refactor quietly erode them. If a task seems to require breaking on
 | Layer | Choice | Notes |
 |---|---|---|
 | Frontend | **React + Vite + Tailwind CSS** | TypeScript. Vite for fast HMR during the build. |
-| Backend | **Java 21 + Spring Boot 3** | Orchestrator, policy gate, evidence fusion, audit. |
-| Database | **Supabase** (Postgres + `pgvector`) | Accessed over JDBC. RLS on every table. |
+| Backend | **Python 3.13 + FastAPI** | Orchestrator, policy gate, evidence fusion, audit. |
+| Database | **Supabase** (Postgres + `pgvector`) | `supabase-py`. RLS on every table. |
 | On-device model | **Gemma 3n E4B** | Multimodal — audio, image, text. Runs on-device. |
 | Server model | **Qwen3-4B (Q8)** | Evidence-fusion rationale, advisory synthesis. |
-| Model service | **Python + FastAPI** | Thin HTTP wrapper. The *only* Python in the system. |
+| Model service | **Python + FastAPI** | Separate process, holds the model memory. |
 | Observability | **PRISM + OpenTelemetry** | Traces, evaluators, V1→V2 regression. |
 
 > **Check before you build:** `Qwen3-4B-Q8` is assumed (~4.3 GB, runs on a laptop via Ollama). If you
 > meant Qwen3-**32B** at Q8, that's ~34 GB and needs a serious GPU — decide now, not at hour 14.
 
-### Why Java for the backend
+### Why Python for the backend
 
-A deliberate change from the original PRD's FastAPI, and it makes the product *stronger*:
+One language across `api/` and `models/`. Three reasons:
 
-- **The model service was always a separate HTTP service**, so the Python ML ecosystem is entirely
-  unaffected by the backend language. The polyglot split is clean, not a compromise.
-- **The policy gate is the heart of the thesis, and it is pure typed business logic.** With sealed
-  interfaces and exhaustive `switch`, an unhandled risk state is a *compile error*. That is a
-  materially better safety story than a Python `if` chain, and it demos well.
-- **Banks run Java.** For a fraud product, this reads as production-intent rather than prototype.
+- **One toolchain, one deploy, one set of types.** `contracts/py/contracts.py` is imported by both
+  services, so drift between them is impossible rather than merely discouraged.
+- **Pydantic enforces the frozen contracts at runtime.** `extra="forbid"` is what makes a `Signal`
+  arriving with an `action` field *raise* instead of being quietly accepted — rule 1, enforced at
+  the boundary rather than trusted.
+- **Whoever is free can unblock whoever is stuck.** In a three-person team where the model lane is
+  the critical path, that matters more than any language feature.
 
-**The trade-off you accept:** no LangGraph. Implement the agent trajectory as an **explicit state
-machine in Java**. The PRD already permits this, and it is *more* defensible for bounded autonomy —
-no framework magic, no open-ended loops, hard-typed terminal states you can point at on a slide.
+**You do not give up compile-time safety.** The `Action` union plus `assert_never` gives the same
+exhaustiveness guarantee a sealed interface would — mypy fails the build on a `match` that misses a
+rung, and names the one you forgot:
 
-**Two Spring gotchas that will cost you hours if ignored:**
+```
+error: Argument 1 to "assert_never" has incompatible type "Escalate"; expected "Never"
+```
 
-- **Do not use JPA/Hibernate.** Use Spring Data JDBC or plain `JdbcClient`. Lazy-loading and entity
-  mapping will eat an afternoon you do not have.
-- **Supabase RLS is bypassed by the service role key.** If Spring connects as service role, RLS is
-  *not* protecting you. Enforce authorization in the Spring layer and keep RLS as defence in depth —
+Run `mypy api/ models/ contracts/py/` in CI and an unhandled risk state can never reach production.
+
+**Two gotchas that will cost you hours if ignored:**
+
+- **The Supabase service-role key bypasses RLS.** If the API connects as service role, RLS is *not*
+  protecting you. Enforce authorization in the application layer and keep RLS as defence in depth —
   and say exactly this if a judge asks.
+- **Keep `api/` and `models/` as separate processes.** Models take 10–30 s to load; sharing a process
+  means every API edit triggers a reload of the models, and hot-reload becomes useless by hour six.
 
 ---
 
@@ -108,7 +115,7 @@ no framework magic, no open-ended loops, hard-typed terminal states you can poin
 
 ```
                         ┌──────────────────────────────┐
-  React + Vite  ───────▶│  Spring Boot  (port 8080)    │
+  React + Vite  ───────▶│  api/   FastAPI  (port 8080) │
   Tailwind              │                              │
                         │  • explicit state machine    │
                         │  • evidence fusion           │
@@ -117,13 +124,15 @@ no framework magic, no open-ended loops, hard-typed terminal states you can poin
                         │  • audit log                 │
                         └───┬──────────────────────┬───┘
                             │                      │
-              JDBC ─────────▼──────┐      HTTP ────▼─────────────────┐
-              │  Supabase          │      │  Model service (FastAPI) │
+     supabase-py ───────────▼──────┐      HTTP ────▼─────────────────┐
+              │  Supabase          │      │  models/ FastAPI         │
               │  Postgres+pgvector │      │  port 8000               │
               │  RLS on all tables │      │                          │
               └────────────────────┘      │  Gemma 3n E4B  (extract) │
                                           │  Qwen3-4B-Q8   (reason)  │
                                           └──────────────────────────┘
+
+        Both services import contracts/py/contracts.py - one set of types.
 ```
 
 **Flow:** transaction → context enrichment → communication analysis → advisory retrieval → evidence
@@ -163,7 +172,7 @@ cited as evidence; eight labelled signals can.
 ## Frozen contracts
 
 **These are frozen. Do not add fields without all three owners agreeing.** Defined once in
-`contracts/` and mirrored into Java records and TypeScript types.
+`contracts/` and mirrored into Pydantic models and TypeScript types.
 
 ```jsonc
 // Signal — what a model emits. Never contains an action.
@@ -208,14 +217,19 @@ cited as evidence; eight labelled signals can.
 }
 ```
 
-```java
-// The gate in Java. An unhandled state does not compile.
-public sealed interface Action
-    permits Approve, Verify, CoolOff, Hold, Escalate {}
+```python
+# The gate's domain model. A match that misses a rung fails mypy.
+Action = Approve | Verify | CoolOff | Hold | Escalate
 
-public record PolicyInput(int riskScore, double confidence,
-                          boolean criticalEvidence, boolean highImpact,
-                          IdentityAssurance ial) {}
+@dataclass(frozen=True, slots=True)
+class PolicyInput:
+    risk_score: int          # 0-100
+    confidence: float        # 0-1, independent of risk_score
+    critical_evidence: bool = False
+    high_impact: bool = False
+    time_pressure: bool = False      # the COOL_OFF trigger
+    degraded: bool = False           # rule 5: can never yield APPROVE
+    identity_assurance: IdentityAssurance | None = None
 ```
 
 ### Policy thresholds (illustrative — config, not prompts)
@@ -243,12 +257,12 @@ LedgerSentinel/
 │  ├─ src/components/      #   presentational only, no fetch calls
 │  ├─ src/fixtures.ts      #   the seam — Yash builds against this
 │  └─ src/routes/          #   data wiring                  (Yashraj)
-├─ api/                    # Spring Boot                    (Yashraj)
+├─ api/                    # FastAPI :8080                  (Yashraj)
 │  ├─ policy/              #   deterministic gate + unit tests
 │  ├─ fusion/              #   evidence normalisation
 │  ├─ statemachine/        #   explicit trajectory, typed terminal states
 │  └─ audit/
-├─ models/                 # FastAPI + Gemma 3n + Qwen      (Ashmit)
+├─ models/                 # FastAPI :8000 + Gemma 3n + Qwen  (Ashmit)
 │  ├─ extract/             #   multimodal → Signal[]
 │  ├─ calibrate/           #   Platt scaling layer
 │  └─ notebooks/           #   training + eval
@@ -261,14 +275,22 @@ LedgerSentinel/
 
 ## Getting started
 
+**Prerequisites:** Python 3.13+, Node 20+, [Ollama](https://ollama.com). No JDK, no Docker.
+The model pulls are ~12 GB — **start them first and let them run in the background.**
+
 ```bash
-# 1. Models (Ashmit)
+# 1. Models (Ashmit) - start the downloads before anything else
 ollama pull gemma3n:e4b
 ollama pull qwen3:4b-q8_0
-cd models && uv sync && uvicorn main:app --port 8000
+
+cd models && python -m venv .venv && .venv/Scripts/activate   # Linux/mac: .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 
 # 2. Backend (Yashraj)
-cd api && ./mvnw spring-boot:run          # :8080
+cd api && python -m venv .venv && .venv/Scripts/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8080
 
 # 3. Frontend (Yash)
 cd web && npm install && npm run dev      # :5173
@@ -309,7 +331,7 @@ scenario data you can build against before anything real exists.
 | Owner | Owns outright | Never touches |
 |---|---|---|
 | **Yash** | Design system + tokens, all screens as comps, presentational components, `fixtures.ts` consumers, the consent screen | Data fetching, Supabase, routing, policy logic |
-| **Yashraj** | Supabase schema + RLS, Spring endpoints, the policy gate, state machine, evidence fusion, audit log, redaction, data wiring | Component visuals, tokens, model internals |
+| **Yashraj** | Supabase schema + RLS, FastAPI endpoints, the policy gate, state machine, evidence fusion, audit log, redaction, data wiring | Component visuals, tokens, model internals |
 | **Ashmit** | Gemma 3n + Qwen service, label taxonomy, extraction prompts, calibration layer, eval notebooks | The policy gate — models emit signals, never decisions |
 
 ### Cut list, in order

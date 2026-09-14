@@ -1,7 +1,7 @@
 # Frozen contracts
 
 **This folder is the single source of truth for every data shape that crosses a boundary in
-LedgerSentinel.** JSON Schema is authoritative; the TypeScript and Java files mirror it by hand.
+LedgerSentinel.** JSON Schema is authoritative; the Python and TypeScript files mirror it by hand.
 
 ## The rule
 
@@ -12,7 +12,7 @@ renders blank — and you find out hours later. If you need a change:
 
 1. Say so in the group chat.
 2. All three agree.
-3. Update the JSON Schema **and** `ts/contracts.ts` **and** the Java records in the same commit.
+3. Update the JSON Schema **and** `py/contracts.py` **and** `ts/contracts.ts` in the same commit.
 4. Bump `CONTRACTS_VERSION` below.
 
 `CONTRACTS_VERSION = 1.0.0`
@@ -38,7 +38,7 @@ contracts/
 │  ├─ assessment.schema.json
 │  └─ decision.schema.json
 ├─ ts/contracts.ts       # frontend types + guards   (import into web/)
-├─ java/                 # Spring records + sealed Action  (copy into api/)
+├─ py/contracts.py       # Pydantic models + Action union  (imported by api/ and models/)
 └─ fixtures/             # complete, self-consistent scenario data
    ├─ s01-coercive-scam.json
    └─ s04-legitimate-travel.json
@@ -99,8 +99,29 @@ communication  transaction  advisory  identity
 ## Validating
 
 ```bash
-python -m pip install jsonschema
-python contracts/validate.py          # checks every fixture against its schema
+python -m pip install jsonschema pydantic mypy
+python contracts/validate.py          # schemas + fixtures + Pydantic round-trip
 ```
 
-Run this after any contract change. It is the cheapest test in the repo.
+Run this after any contract change. It is the cheapest test in the repo. It checks three things:
+every fixture against its schema, every `rationale_ref` resolving to something real, and every
+fixture round-tripping through the Pydantic models — which is what catches `py/contracts.py`
+drifting away from the JSON.
+
+### Exhaustiveness
+
+`Action` is a union of five frozen dataclasses, and `describe()` in `py/contracts.py` shows the
+pattern to copy in the policy gate. Delete a `case` from a `match` and mypy fails the build, naming
+the rung you forgot:
+
+```
+error: Argument 1 to "assert_never" has incompatible type "Escalate"; expected "Never"
+```
+
+```bash
+MYPYPATH=contracts/py mypy api/ models/ contracts/py/
+```
+
+Add a sixth rung to the ladder and every incomplete `match` in the codebase fails until somebody
+decides what it means. That is the point — an unhandled risk state should never be something you
+discover in production.
