@@ -1,0 +1,22 @@
+# What NOT to upload to App Engine. Everything the API needs stays: api/, contracts/, eval/runs/.
+.git/
+.gitignore
+.gcloudignore
+.claude/
+docs/
+web/
+model-service/
+db/
+eval/README.md
+eval/__pycache__/
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/node_modules/
+**/.env
+**/.env.*
+!**/.env.example
+*.pptx
+*.pdf
+*.docx
+app.yaml.example

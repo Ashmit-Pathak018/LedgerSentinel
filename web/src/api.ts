@@ -44,8 +44,15 @@ export interface Health {
   models: Record<string, unknown>
 }
 
+/**
+ * Where the API lives. Empty in dev, where Vite proxies /v1 to :8080 (vite.config.ts). In a
+ * production build VITE_API_BASE is the deployed API origin, baked in at build time - a static
+ * host has no proxy, so a relative /v1 would 404 against the CDN.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })

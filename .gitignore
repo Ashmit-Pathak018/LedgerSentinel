@@ -22,6 +22,11 @@ npm-debug.log*
 secrets.env
 *.key
 *.pem
+# The deployable app.yaml is generated from api/.env by deploy/make_app_yaml.py and carries
+# the Supabase service key and the PRISM key in env_variables. Only app.yaml.example is tracked.
+app.yaml
+# Firebase CLI cache
+web/.firebase/
 
 # Models and large artefacts - these live in Ollama or a release, never in git
 *.gguf
