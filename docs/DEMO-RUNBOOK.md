@@ -1,11 +1,14 @@
 # Demo runbook
 
-**Deployed:** console at **https://ledgersentinel-hq.web.app** (Firebase Hosting), API on App
-Engine in the same project, `MODELS_MOCK=true`. Same login as below. The API scales to zero
-between uses, so the first request after idle takes a few seconds - open the site and log in
-*before* you walk on, not while a judge watches. The local setup below remains the rehearsed
-path; the deployed one is the fallback if the laptop misbehaves, and the link for the
-submission form.
+**Deployed:** console at **https://ledgersentinel-hq.web.app** (Firebase Hosting, free). The
+landing page and login are live there. The API is **not yet deployed**: Google requires a
+billing account for App Engine and Cloud Run on a new project, and none is attached. Until it
+is, the hosted console falls back to mock rows and the PRISM screen shows "no saved runs".
+When billing is attached, the deploy is `python deploy/make_cloudrun_env.py` then the
+`gcloud run deploy` line in the Dockerfile header, then rebuild the web with `VITE_API_BASE`
+set to the Cloud Run URL and `firebase deploy`. Cloud Run scales to zero, so log in on the
+live site *before* you walk on. The local setup below is the rehearsed path either way; the
+hosted link is what goes in the submission form.
 
 Rehearsed 2026-09-14 against the live path (`eval/runs/v3-live.json`, 8/8 decisions). Everything
 below was clicked, not assumed. Budget: **4 minutes** for the console, leaving time for questions.
