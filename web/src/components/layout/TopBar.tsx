@@ -2,7 +2,11 @@ import React from 'react';
 import { Search, Bell, ChevronRight } from 'lucide-react';
 import { useFraud } from '../../context/FraudContext';
 
-export const TopBar: React.FC = () => {
+interface TopBarProps {
+  onBackToLanding?: () => void;
+}
+
+export const TopBar: React.FC<TopBarProps> = ({ onBackToLanding }) => {
   const { currentScreen, activeTransaction } = useFraud();
 
   // Compute breadcrumb title based on screen
@@ -23,10 +27,20 @@ export const TopBar: React.FC = () => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-20 flex items-center justify-between px-8">
       {/* Left: Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-        <span className="text-slate-400">LedgerSentinel</span>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-        <span className="text-slate-600">{currentTitle}</span>
+      <div className="flex items-center gap-3">
+        {onBackToLanding && (
+          <button
+            onClick={onBackToLanding}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            title="Return to Product Landing Page"
+          >
+            ← Product Page
+          </button>
+        )}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <span className="text-slate-400">LedgerSentinel</span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+          <span className="text-slate-600">{currentTitle}</span>
         {(currentScreen === 'investigation' || currentScreen === 'communications') && (
           <>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
@@ -35,7 +49,8 @@ export const TopBar: React.FC = () => {
             </span>
           </>
         )}
-      </nav>
+        </nav>
+      </div>
 
       {/* Center: Global Search */}
       <div className="w-full max-w-md mx-6">
