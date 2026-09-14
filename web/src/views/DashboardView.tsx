@@ -178,9 +178,16 @@ export const DashboardView: React.FC = () => {
               <span className="absolute top-2.5 left-2.5 text-[9px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50/90 px-1.5 py-0.5 rounded border border-emerald-200/70 select-none pointer-events-none">
                 Safe & Confident
               </span>
-              <span className="absolute top-2.5 left-[52%] text-[9px] uppercase tracking-wider font-bold text-rose-700 bg-rose-50/90 px-1.5 py-0.5 rounded border border-rose-200/70 select-none pointer-events-none shadow-2xs">
-                High Risk / High Conf
-              </span>
+              <div className="absolute top-2.5 left-[52%] select-none pointer-events-none z-10">
+                <div className="inline-flex flex-col bg-rose-50/95 border border-rose-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                  <span className="text-[8.5px] uppercase tracking-wider font-bold text-rose-700 leading-none">
+                    High Risk
+                  </span>
+                  <span className="text-[7px] uppercase tracking-wider font-semibold text-rose-500 leading-none mt-0.5">
+                    High Conf
+                  </span>
+                </div>
+              </div>
               <span className="absolute bottom-2.5 right-2.5 text-[9px] uppercase tracking-wider font-semibold text-amber-700 bg-amber-50/90 px-1.5 py-0.5 rounded border border-amber-200/70 select-none pointer-events-none">
                 High Uncertainty
               </span>
@@ -204,18 +211,18 @@ export const DashboardView: React.FC = () => {
               {/* Safe & Confident (low risk, high confidence) */}
               <div 
                 className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
-                style={{ left: '14%', bottom: '74%' }} 
-                title="Risk 14, Conf 74%" 
+                style={{ left: '14%', bottom: '70%' }} 
+                title="Risk 14, Conf 70%" 
               />
               <div 
                 className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
-                style={{ left: '22%', bottom: '68%' }} 
-                title="Risk 22, Conf 68%" 
+                style={{ left: '22%', bottom: '66%' }} 
+                title="Risk 22, Conf 66%" 
               />
               <div 
                 className="absolute w-2.5 h-2.5 bg-emerald-600 rounded-full opacity-75 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
-                style={{ left: '30%', bottom: '78%' }} 
-                title="Risk 30, Conf 78%" 
+                style={{ left: '30%', bottom: '72%' }} 
+                title="Risk 30, Conf 72%" 
               />
               <div 
                 className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-65 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
