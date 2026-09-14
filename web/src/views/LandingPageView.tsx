@@ -9,6 +9,7 @@ import { DecisionStorySection } from '../components/landing/DecisionStorySection
 import { ExplainabilitySection } from '../components/landing/ExplainabilitySection';
 import { LandingCta } from '../components/landing/LandingCta';
 import { LandingFooter } from '../components/landing/LandingFooter';
+import { AuthModal } from '../components/auth/AuthModal';
 
 interface LandingPageViewProps {
   onLaunchApp: () => void;
@@ -50,8 +51,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onLaunchApp })
 
       {/* 10. Footer */}
       <LandingFooter onLaunchApp={onLaunchApp} />
+
+      {/* In-place Authentication Modal Dialog */}
+      <AuthModal onSuccessRedirect={onLaunchApp} />
     </div>
   );
 };
 
 export default LandingPageView;
+

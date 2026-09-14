@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { FraudProvider, useFraud } from './context/FraudContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopBar } from './components/layout/TopBar';
@@ -59,35 +60,63 @@ const MainContent: React.FC<MainContentProps> = ({ onBackToLanding }) => {
   );
 };
 
-export const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'landing' | 'app'>(() => {
-    if (typeof window !== 'undefined' && (window.location.hash === '#app' || window.location.hash === '#console')) {
-      return 'app';
-    }
-    return 'landing';
-  });
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isLoading, openLoginModal, openResetPasswordModal } = useAuth();
+  const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
 
+  // Handle URL hashes and protected route enforcement
   useEffect(() => {
-    const handleHash = () => {
-      if (window.location.hash === '#app' || window.location.hash === '#console') {
-        setViewMode('app');
-      } else if (window.location.hash === '#landing' || window.location.hash === '') {
+    if (isLoading) return;
+
+    const checkRoute = () => {
+      const hash = window.location.hash;
+
+      if (hash === '#reset-password' || hash === '#recovery') {
+        setViewMode('landing');
+        openResetPasswordModal();
+        return;
+      }
+
+      if (hash === '#app' || hash === '#console' || hash === '#dashboard') {
+        if (isAuthenticated) {
+          setViewMode('app');
+        } else {
+          // Unauthenticated attempt to access console: redirect to landing and open login modal
+          setViewMode('landing');
+          window.location.hash = '';
+          openLoginModal();
+        }
+      } else {
         setViewMode('landing');
       }
     };
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
+
+    checkRoute();
+    window.addEventListener('hashchange', checkRoute);
+    return () => window.removeEventListener('hashchange', checkRoute);
+  }, [isAuthenticated, isLoading, openLoginModal, openResetPasswordModal]);
 
   const launchApp = () => {
-    setViewMode('app');
-    window.location.hash = 'app';
+    if (isAuthenticated) {
+      setViewMode('app');
+      window.location.hash = 'app';
+    } else {
+      openLoginModal();
+    }
   };
 
   const backToLanding = () => {
     setViewMode('landing');
     window.location.hash = '';
   };
+
+  // If user signs out while in app mode, redirect back to landing
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && viewMode === 'app') {
+      setViewMode('landing');
+      window.location.hash = '';
+    }
+  }, [isAuthenticated, isLoading, viewMode]);
 
   return (
     <FraudProvider>
@@ -103,5 +132,12 @@ export const App: React.FC = () => {
   );
 };
 
-export default App;
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
 
+export default App;

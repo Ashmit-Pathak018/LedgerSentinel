@@ -11,6 +11,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useFraud } from '../../context/FraudContext';
+import { useAuth } from '../../context/AuthContext';
 import type { NavScreen } from '../../types/fraud';
 
 interface NavItem {
@@ -53,6 +54,16 @@ const SECTIONS: NavSection[] = [
 
 export const Sidebar: React.FC = () => {
   const { currentScreen, setCurrentScreen } = useFraud();
+  const { profile, user } = useAuth();
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Fraud Analyst';
+  const displayRole = profile?.role || user?.user_metadata?.role || 'Fraud Operations Lead';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n: string) => n[0].toUpperCase())
+    .join('') || 'AN';
 
   return (
     <aside className="w-[240px] flex-shrink-0 h-screen max-h-screen bg-white border-r border-slate-200 flex flex-col select-none z-30 overflow-hidden">
@@ -123,14 +134,14 @@ export const Sidebar: React.FC = () => {
         {/* Analyst Profile */}
         <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white border border-slate-200/80 shadow-xs">
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
-            YB
+            {initials}
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-xs font-semibold text-slate-800 truncate leading-snug">
-              Yash Bohra
+              {displayName}
             </span>
             <span className="text-[10px] text-slate-400 truncate">
-              Frontend & Fraud Ops Lead
+              {displayRole}
             </span>
           </div>
           <Activity className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
@@ -139,3 +150,4 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+
