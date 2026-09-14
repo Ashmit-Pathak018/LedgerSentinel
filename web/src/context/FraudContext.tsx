@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import type { 
   NavScreen, 
   Transaction, 
@@ -14,6 +14,8 @@ import {
   INITIAL_AUDIT_LOGS, 
   INITIAL_CHANNELS 
 } from '../data/mockData';
+import { loadAll } from '../adapters/liveData';
+import { SCENARIOS } from '../api';
 
 interface FraudContextType {
   currentScreen: NavScreen;
@@ -38,6 +40,10 @@ interface FraudContextType {
   updateCaseAction: (caseId: string, newAction: AutonomyAction) => void;
   addCaseNote: (caseId: string, text: string) => void;
   // Demo Mode
+  // Live data: when the API is reachable these replace the mock transactions. Falls back to
+  // mocks so the UI still demos with the backend down - same instinct as MODELS_MOCK.
+  isLive: boolean;
+  liveError: string | null;
   demoStep: number;
   isDemoMode: boolean;
   setIsDemoMode: (val: boolean) => void;
@@ -51,7 +57,32 @@ const FraudContext = createContext<FraudContextType | undefined>(undefined);
 
 export const FraudProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentScreen, setCurrentScreen] = useState<NavScreen>('dashboard');
-  const transactionsList = INITIAL_TRANSACTIONS;
+
+  // Live transactions from the API, falling back to Yash's fixtures when it is unreachable.
+  const [liveTxns, setLiveTxns] = useState<Transaction[] | null>(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAll(Object.values(SCENARIOS))
+      .then(({ transactions, errors }) => {
+        if (cancelled) return;
+        if (transactions.length) setLiveTxns(transactions);
+        if (errors.length) setLiveError(errors.join('; '));
+      })
+      .catch((e) => {
+        if (!cancelled) setLiveError(String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Live data leads; mocks fill in behind it so every screen still has something to render.
+  const transactionsList = useMemo(
+    () => (liveTxns ? [...liveTxns, ...INITIAL_TRANSACTIONS] : INITIAL_TRANSACTIONS),
+    [liveTxns],
+  );
   const [activeTxnId, setActiveTxnId] = useState<string>('TXN-88204-IN');
   const [cases, setCases] = useState<CaseItem[]>(INITIAL_CASES);
   const [activeCaseId, setActiveCaseId] = useState<string>('CASE-2026-8820');
@@ -277,6 +308,8 @@ export const FraudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentScreen,
         transactions: transactionsList,
         activeTransaction,
+        isLive: liveTxns !== null,
+        liveError,
         selectTransaction,
         cases,
         activeCaseId,

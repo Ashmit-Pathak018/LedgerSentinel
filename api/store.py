@@ -229,12 +229,88 @@ class SupabaseStore:
         ).execute()
 
 
+class ResilientStore:
+    """Wraps a primary store and mirrors to memory when it fails.
+
+    Why this exists: a Supabase write can fail transiently - clock skew on the JWT (PGRST303),
+    a dropped connection, a rate limit - and an audit-log failure was taking the whole analysis
+    down with a 500. That is the wrong trade in both directions: the customer gets no decision,
+    AND no audit row is written.
+
+    Rule 5 applied to persistence. If we cannot record what we did, we do not refuse to decide -
+    we decide, record locally, and mark the run degraded so the decision is pushed UP the ladder
+    rather than quietly trusted. Losing the audit trail makes the system less trustworthy, which
+    means less autonomy, not more.
+
+    `degraded` is readable so the analyze path can fold it into the assessment.
+    """
+
+    def __init__(self, primary: Store) -> None:
+        self._primary = primary
+        self._fallback = MemoryStore()
+        self.failures: list[str] = []
+
+    @property
+    def backend(self) -> str:
+        suffix = f" + memory fallback ({len(self.failures)} failures)" if self.failures else ""
+        return self._primary.backend + suffix
+
+    @property
+    def degraded(self) -> bool:
+        return bool(self.failures)
+
+    def _both(self, name: str, *args, **kwargs):
+        """Write to memory always, and to the primary on a best-effort basis."""
+        getattr(self._fallback, name)(*args, **kwargs)
+        try:
+            return getattr(self._primary, name)(*args, **kwargs)
+        except Exception as e:  # noqa: BLE001
+            msg = f"{name}: {type(e).__name__}: {str(e)[:120]}"
+            self.failures.append(msg)
+            print(f"[store] DEGRADED - {msg}")
+            return None
+
+    def _read(self, name: str, *args, **kwargs):
+        try:
+            result = getattr(self._primary, name)(*args, **kwargs)
+            if result:
+                return result
+        except Exception as e:  # noqa: BLE001
+            self.failures.append(f"{name}: {type(e).__name__}")
+            print(f"[store] DEGRADED read - {name}: {e}")
+        return getattr(self._fallback, name)(*args, **kwargs)
+
+    def save_analysis(self, transaction_id: str, payload: dict) -> None:
+        self._both("save_analysis", transaction_id, payload)
+
+    def append_audit(self, event: dict) -> None:
+        self._both("append_audit", event)
+
+    def open_case(self, case: dict) -> None:
+        self._both("open_case", case)
+
+    def set_consent(self, customer_id: str, channel: str, granted: bool) -> None:
+        self._both("set_consent", customer_id, channel, granted)
+
+    def get_analysis(self, transaction_id: str) -> dict | None:
+        return self._read("get_analysis", transaction_id)
+
+    def list_audit(self, limit: int = 100) -> list[dict]:
+        return self._read("list_audit", limit)
+
+    def list_cases(self, status: str | None = None) -> list[dict]:
+        return self._read("list_cases", status)
+
+    def get_consent(self, customer_id: str) -> dict[str, bool]:
+        return self._read("get_consent", customer_id)
+
+
 _store: Store | None = None
 
 
 def get_store() -> Store:
-    """Supabase when configured, memory otherwise. Never raises - a missing database degrades
-    to in-memory rather than taking the API down."""
+    """Supabase when configured, memory otherwise. Never raises - a missing or flaky database
+    degrades rather than taking the API down."""
     global _store
     if _store is not None:
         return _store
@@ -244,7 +320,7 @@ def get_store() -> Store:
 
     if url and key:
         try:
-            _store = SupabaseStore(url, key)
+            _store = ResilientStore(SupabaseStore(url, key))
             print(f"[store] {_store.backend}")
         except Exception as e:  # noqa: BLE001 - any failure falls back rather than crashing
             print(f"[store] Supabase unavailable ({e}); falling back to memory")
