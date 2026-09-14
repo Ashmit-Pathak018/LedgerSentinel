@@ -1,5 +1,12 @@
 # Demo runbook
 
+**Deployed:** console at **https://ledgersentinel-hq.web.app** (Firebase Hosting), API on App
+Engine in the same project, `MODELS_MOCK=true`. Same login as below. The API scales to zero
+between uses, so the first request after idle takes a few seconds - open the site and log in
+*before* you walk on, not while a judge watches. The local setup below remains the rehearsed
+path; the deployed one is the fallback if the laptop misbehaves, and the link for the
+submission form.
+
 Rehearsed 2026-09-14 against the live path (`eval/runs/v3-live.json`, 8/8 decisions). Everything
 below was clicked, not assumed. Budget: **4 minutes** for the console, leaving time for questions.
 
