@@ -1,0 +1,19 @@
+# Keep the build context to what the Dockerfile COPYs. No env files, ever.
+.git/
+.claude/
+docs/
+web/
+model-service/
+db/
+deploy/
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/node_modules/
+**/.env
+**/.env.*
+app.yaml
+app.yaml.example
+*.pptx
+*.pdf
+*.docx

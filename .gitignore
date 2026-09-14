@@ -22,9 +22,10 @@ npm-debug.log*
 secrets.env
 *.key
 *.pem
-# The deployable app.yaml is generated from api/.env by deploy/make_app_yaml.py and carries
-# the Supabase service key and the PRISM key in env_variables. Only app.yaml.example is tracked.
+# The deployable app.yaml / cloudrun.env.yaml are generated from api/.env by the scripts in
+# deploy/ and carry the Supabase service key and the PRISM key. Only the examples are tracked.
 app.yaml
+deploy/cloudrun.env.yaml
 # Firebase CLI cache
 web/.firebase/
 
