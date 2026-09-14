@@ -156,7 +156,15 @@ export const DashboardView: React.FC = () => {
             </p>
 
             {/* Custom visual scatter plot */}
-            <div className="relative h-44 border-l border-b border-slate-300 ml-6 mb-2 mt-3">
+            <div className="relative h-48 border-l border-b border-slate-300 ml-6 mb-2 mt-3">
+              {/* Quadrant background tints */}
+              <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none overflow-hidden">
+                <div className="bg-emerald-500/[0.02]" />
+                <div className="bg-rose-500/[0.03]" />
+                <div className="bg-slate-500/[0.015]" />
+                <div className="bg-amber-500/[0.025]" />
+              </div>
+
               {/* Y Axis Labels */}
               <span className="absolute -left-7 top-0 text-[10px] text-slate-400 font-mono">100%</span>
               <span className="absolute -left-7 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono">50%</span>
@@ -166,34 +174,85 @@ export const DashboardView: React.FC = () => {
               <div className="w-full border-t border-dashed border-slate-200 absolute top-1/2" />
               <div className="h-full border-r border-dashed border-slate-200 absolute left-1/2" />
 
-              {/* Quadrant labels */}
-              <span className="absolute top-2 left-2 text-[9px] uppercase tracking-wider text-slate-400">
+              {/* Quadrant labels - positioned with generous clearance so dots never overlap */}
+              <span className="absolute top-2.5 left-2.5 text-[9px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50/90 px-1.5 py-0.5 rounded border border-emerald-200/70 select-none pointer-events-none">
                 Safe & Confident
               </span>
-              <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wider text-rose-500 font-semibold">
+              <span className="absolute top-2.5 left-[52%] text-[9px] uppercase tracking-wider font-bold text-rose-700 bg-rose-50/90 px-1.5 py-0.5 rounded border border-rose-200/70 select-none pointer-events-none shadow-2xs">
                 High Risk / High Conf
               </span>
-              <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-wider text-amber-500">
+              <span className="absolute bottom-2.5 right-2.5 text-[9px] uppercase tracking-wider font-semibold text-amber-700 bg-amber-50/90 px-1.5 py-0.5 rounded border border-amber-200/70 select-none pointer-events-none">
                 High Uncertainty
+              </span>
+              <span className="absolute bottom-2.5 left-2.5 text-[9px] uppercase tracking-wider font-medium text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/60 select-none pointer-events-none">
+                Baseline Monitor
               </span>
 
               {/* Plotted Points */}
-              {/* Point 1: TXN-88204-IN (Risk 82, Conf 87) - Highlighted */}
+              {/* Point 1: TXN-88204-IN (Risk 82, Conf 87) - Highlighted Flagged Transaction */}
               <div 
-                className="absolute w-3.5 h-3.5 bg-rose-600 rounded-full ring-4 ring-rose-100 cursor-pointer transform -translate-x-1/2 translate-y-1/2 z-10 transition-transform hover:scale-125"
+                className="group absolute cursor-pointer transform -translate-x-1/2 translate-y-1/2 z-20"
                 style={{ left: '82%', bottom: '87%' }}
                 title="TXN-88204-IN: Risk 82, Conf 87% (Click to investigate)"
                 onClick={() => selectTransaction('TXN-88204-IN')}
+              >
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60"></span>
+                <span className="relative flex w-3.5 h-3.5 bg-rose-600 rounded-full ring-4 ring-rose-200 group-hover:scale-125 transition-transform"></span>
+              </div>
+
+              {/* Realistic distributed sample points - Well separated from quadrant badges */}
+              {/* Safe & Confident (low risk, high confidence) */}
+              <div 
+                className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '14%', bottom: '74%' }} 
+                title="Risk 14, Conf 74%" 
+              />
+              <div 
+                className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '22%', bottom: '68%' }} 
+                title="Risk 22, Conf 68%" 
+              />
+              <div 
+                className="absolute w-2.5 h-2.5 bg-emerald-600 rounded-full opacity-75 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '30%', bottom: '78%' }} 
+                title="Risk 30, Conf 78%" 
+              />
+              <div 
+                className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-65 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '18%', bottom: '62%' }} 
+                title="Risk 18, Conf 62%" 
               />
 
-              {/* Background sample points */}
-              <div className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-60" style={{ left: '12%', bottom: '96%' }} />
-              <div className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-60" style={{ left: '18%', bottom: '92%' }} />
-              <div className="absolute w-2.5 h-2.5 bg-amber-500 rounded-full opacity-70" style={{ left: '54%', bottom: '74%' }} />
-              <div className="absolute w-3 h-3 bg-purple-600 rounded-full opacity-80" style={{ left: '94%', bottom: '95%' }} />
-              <div className="absolute w-2.5 h-2.5 bg-amber-500 rounded-full opacity-70" style={{ left: '61%', bottom: '62%' }} />
-              <div className="absolute w-2 h-2 bg-emerald-500 rounded-full opacity-60" style={{ left: '08%', bottom: '98%' }} />
-              <div className="absolute w-2.5 h-2.5 bg-rose-500 rounded-full opacity-70" style={{ left: '88%', bottom: '84%' }} />
+              {/* High Risk points */}
+              <div 
+                className="absolute w-2.5 h-2.5 bg-rose-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '89%', bottom: '78%' }} 
+                title="Risk 89, Conf 78%" 
+              />
+              <div 
+                className="absolute w-3 h-3 bg-purple-600 rounded-full opacity-80 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '94%', bottom: '88%' }} 
+                title="Risk 94, Conf 88%" 
+              />
+
+              {/* High Uncertainty (elevated risk, lower confidence) */}
+              <div 
+                className="absolute w-2.5 h-2.5 bg-amber-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '60%', bottom: '60%' }} 
+                title="Risk 60, Conf 60%" 
+              />
+              <div 
+                className="absolute w-2.5 h-2.5 bg-amber-500 rounded-full opacity-70 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '68%', bottom: '38%' }} 
+                title="Risk 68, Conf 38%" 
+              />
+
+              {/* Baseline Monitor */}
+              <div 
+                className="absolute w-2 h-2 bg-slate-400 rounded-full opacity-60 transform -translate-x-1/2 translate-y-1/2 hover:scale-125 transition-transform" 
+                style={{ left: '26%', bottom: '32%' }} 
+                title="Risk 26, Conf 32%" 
+              />
             </div>
 
             {/* X Axis Labels */}
