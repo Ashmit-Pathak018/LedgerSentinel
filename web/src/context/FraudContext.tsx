@@ -248,7 +248,7 @@ export const FraudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addCaseNote = (caseId: string, text: string) => {
     const note = {
       id: `N-${Date.now().toString().slice(-4)}`,
-      author: 'Yashraj P. (Analyst)',
+      author: 'Yash Bohra (Analyst)',
       timestamp: 'Just now',
       text,
     };
@@ -277,13 +277,11 @@ export const FraudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentScreen('audit');
     } else if (step === 14) {
       setCurrentScreen('privacy');
-    } else if (step === 15) {
-      setCurrentScreen('prism');
     }
   };
 
   const nextDemoStep = () => {
-    if (demoStep < 15) {
+    if (demoStep < 14) {
       setDemoStep(demoStep + 1);
     }
   };

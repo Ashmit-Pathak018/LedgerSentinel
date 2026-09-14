@@ -24,7 +24,6 @@ const DEMO_STEPS = [
   { step: 12, title: 'Inspect Redacted Communication', desc: 'Analyst inspects redacted transcript in Communication Analysis (message stays local).' },
   { step: 13, title: 'Immutable Audit Trail', desc: 'Every model inference, signal score, and policy gate evaluation logged cryptographically.' },
   { step: 14, title: 'Consent Revocation Consequence', desc: 'Testing privacy: Revoking consent drops confidence to 42% and restricts to TRANSACTION-ONLY.' },
-  { step: 15, title: 'PRISM V1 → V2 Verification', desc: 'Engineering proof: Expected calibration error reduced by 78% and correctness up to 96.8%.' },
 ];
 
 export const DemoController: React.FC = () => {
@@ -51,7 +50,7 @@ export const DemoController: React.FC = () => {
           
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-              Step {demoStep} of 15
+              Step {demoStep} of 14
             </span>
             <button
               onClick={() => setIsMinimized(!isMinimized)}
@@ -85,7 +84,7 @@ export const DemoController: React.FC = () => {
             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div 
                 className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${(demoStep / 15) * 100}%` }}
+                style={{ width: `${(demoStep / 14) * 100}%` }}
               />
             </div>
 
@@ -102,7 +101,7 @@ export const DemoController: React.FC = () => {
                 </button>
                 <button
                   onClick={nextDemoStep}
-                  disabled={demoStep === 15}
+                  disabled={demoStep === 14}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-xs"
                 >
                   Next Step

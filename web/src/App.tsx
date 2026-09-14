@@ -12,7 +12,6 @@ import { CommunicationAnalysisView } from './views/CommunicationAnalysisView';
 import { CaseManagementView } from './views/CaseManagementView';
 import { StepUpVerificationView } from './views/StepUpVerificationView';
 import { PrivacyConsentView } from './views/PrivacyConsentView';
-import { PrismEvaluationView } from './views/PrismEvaluationView';
 import { AuditTrailView } from './views/AuditTrailView';
 
 const MainContent: React.FC = () => {
@@ -34,8 +33,6 @@ const MainContent: React.FC = () => {
         return <StepUpVerificationView />;
       case 'privacy':
         return <PrivacyConsentView />;
-      case 'prism':
-        return <PrismEvaluationView />;
       case 'audit':
         return <AuditTrailView />;
       default:

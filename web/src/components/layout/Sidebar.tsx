@@ -1,13 +1,11 @@
 import React from 'react';
 import { 
-  Shield, 
   LayoutDashboard, 
   ArrowLeftRight, 
   Briefcase, 
   SearchCode, 
   MessageSquareShare, 
   ShieldCheck, 
-  Cpu, 
   FileLock2, 
   History,
   Activity
@@ -41,7 +39,6 @@ const SECTIONS: NavSection[] = [
       { id: 'investigation', label: 'Investigation', icon: SearchCode },
       { id: 'communications', label: 'Communications', icon: MessageSquareShare },
       { id: 'stepup', label: 'Step-up Verification', icon: ShieldCheck },
-      { id: 'prism', label: 'PRISM Evaluation', icon: Cpu },
     ],
   },
   {
@@ -62,15 +59,17 @@ export const Sidebar: React.FC = () => {
         {/* Logo */}
         <div className="h-16 px-5 flex items-center border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
-              <Shield className="w-4.5 h-4.5" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="LedgerSentinel Logo" 
+              className="w-8 h-8 object-contain rounded-md flex-shrink-0"
+            />
             <div className="flex flex-col">
               <span className="font-semibold text-slate-900 tracking-tight text-base leading-none">
                 LedgerSentinel
               </span>
               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-1">
-                Fraud Operations
+                Safer Money Intelligence
               </span>
             </div>
           </div>
@@ -125,14 +124,14 @@ export const Sidebar: React.FC = () => {
         {/* Analyst Profile */}
         <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white border border-slate-200/80 shadow-xs">
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-semibold">
-            YP
+            YB
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-xs font-semibold text-slate-800 truncate leading-snug">
-              Yashraj P.
+              Yash Bohra
             </span>
             <span className="text-[10px] text-slate-400 truncate">
-              Senior Fraud Ops
+              Frontend & Fraud Ops Lead
             </span>
           </div>
           <Activity className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />

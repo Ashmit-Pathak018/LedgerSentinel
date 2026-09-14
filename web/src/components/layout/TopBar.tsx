@@ -13,7 +13,6 @@ export const TopBar: React.FC = () => {
     investigation: 'Investigation',
     communications: 'Communication Analysis',
     stepup: 'Step-up Verification',
-    prism: 'PRISM Evaluation',
     privacy: 'Consent & Privacy',
     audit: 'Audit Trail',
   };
@@ -71,10 +70,10 @@ export const TopBar: React.FC = () => {
         {/* Analyst Avatar & Name */}
         <div className="flex items-center gap-2 pl-1">
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold text-xs ring-1 ring-slate-200">
-            YP
+            YB
           </div>
           <span className="font-semibold text-slate-800 text-xs hidden lg:inline">
-            Yashraj P.
+            Yash Bohra
           </span>
         </div>
       </div>

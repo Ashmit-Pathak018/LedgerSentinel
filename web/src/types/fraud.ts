@@ -11,7 +11,6 @@ export type NavScreen =
   | 'investigation'
   | 'communications'
   | 'stepup'
-  | 'prism'
   | 'privacy'
   | 'audit';
 

@@ -309,7 +309,7 @@ export const INITIAL_CASES: CaseItem[] = [
     confidence: 87,
     action: 'HOLD',
     status: 'Open',
-    assignedTo: 'Yashraj P.',
+    assignedTo: 'Yash Bohra',
     updatedAt: '2 mins ago',
     slaRemaining: '00:14:20',
     notes: [
@@ -321,7 +321,7 @@ export const INITIAL_CASES: CaseItem[] = [
       },
       {
         id: 'N-2',
-        author: 'Yashraj P.',
+        author: 'Yash Bohra',
         timestamp: '10:20:10 AM',
         text: 'Reviewing transcript. Suspect impersonating CBI officer using coercive legal threats and account freeze pressure.',
       }
@@ -381,13 +381,13 @@ export const INITIAL_CASES: CaseItem[] = [
     confidence: 90,
     action: 'VERIFY',
     status: 'Resolved',
-    assignedTo: 'Yashraj P.',
+    assignedTo: 'Yash Bohra',
     updatedAt: '1 hour ago',
     slaRemaining: 'Resolved',
     notes: [
       {
         id: 'N-5',
-        author: 'Yashraj P.',
+        author: 'Yash Bohra',
         timestamp: '09:22:10 AM',
         text: 'Out-of-band biometric verification completed successfully by customer. False positive cleared, transaction released.',
       }
@@ -409,7 +409,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'AUD-02',
     timestamp: '10:19:03',
-    actor: 'Yashraj P. (Analyst)',
+    actor: 'Yash Bohra (Analyst)',
     event: 'Investigation Opened',
     transactionId: 'TXN-88204-IN',
     policyVersion: '—',

@@ -254,7 +254,7 @@ export const CaseManagementView: React.FC = () => {
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-slate-400 mt-1 flex-shrink-0" />
               <div>
-                <span className="font-semibold text-slate-800">Assigned to Yashraj P.</span>
+                <span className="font-semibold text-slate-800">Assigned to Yash Bohra</span>
                 <span className="text-slate-400 ml-2 font-mono">10:19:03 AM</span>
                 <p className="text-slate-600 mt-0.5">Analyst accepted case via global queue dispatcher.</p>
               </div>
@@ -270,7 +270,7 @@ export const CaseManagementView: React.FC = () => {
               <span className="text-emerald-700 font-sans font-medium">SUCCESS</span>
             </div>
             <div className="p-2.5 rounded bg-slate-50 border border-slate-200/80 flex justify-between">
-              <span>[10:19:03] ANALYST: Yashraj opened investigation dossier.</span>
+              <span>[10:19:03] ANALYST: Yash Bohra opened investigation dossier.</span>
               <span className="text-blue-700 font-sans font-medium">VIEWED</span>
             </div>
           </div>
