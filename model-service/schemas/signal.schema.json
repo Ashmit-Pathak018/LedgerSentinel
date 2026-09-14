@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgersentinel.dev/schemas/signal.schema.json",
+  "title": "LedgerSentinel Fraud Signal",
+  "description": "A single fraud signal emitted by the model service. FROZEN — do not modify without all-hands agreement.",
+  "type": "object",
+  "required": [
+    "signal_type",
+    "value",
+    "confidence",
+    "source_ref",
+    "evidence_span",
+    "redacted_quote"
+  ],
+  "properties": {
+    "signal_type": {
+      "type": "string",
+      "enum": [
+        "urgency",
+        "authority_impersonation",
+        "secrecy_request",
+        "remote_access_request",
+        "payment_redirect",
+        "otp_request",
+        "threat",
+        "investment_lure"
+      ],
+      "description": "One of eight frozen fraud signal labels. NEVER an action string."
+    },
+    "value": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Calibrated label score (post Platt scaling)."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Calibrated confidence (post Platt scaling)."
+    },
+    "source_ref": {
+      "type": "string",
+      "description": "Identifier tracing back to the source message or recording."
+    },
+    "evidence_span": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Start character offset into the redacted source text."
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "End character offset into the redacted source text."
+        }
+      },
+      "additionalProperties": false
+    },
+    "redacted_quote": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Verbatim excerpt from the source, max 25 words, PII replaced with ***."
+    }
+  },
+  "additionalProperties": false
+}
