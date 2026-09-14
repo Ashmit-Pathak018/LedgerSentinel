@@ -1,0 +1,279 @@
+{
+  "label": "v3-pre",
+  "mode": "live (through the API)",
+  "timestamp": "2026-09-14T12:34:14+00:00",
+  "policy_version": "policy-1.2",
+  "cohort": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "S01",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 15000,
+      "communication_count": 2,
+      "has_critical_evidence": true,
+      "evidence_ids": [
+        "ev_af7b120a",
+        "ev_20f36f9a"
+      ],
+      "action": "ESCALATE",
+      "human_required": true,
+      "rationale_refs": [
+        "rule.risk_gte_85"
+      ],
+      "confidence": 0.785,
+      "risk_score": 100,
+      "critical_evidence_present": false,
+      "high_impact": true,
+      "latency_ms": 2582.2193000349216,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S02",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 8500,
+      "communication_count": 2,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_3015606e",
+        "ev_e65b8fab"
+      ],
+      "action": "COOL_OFF",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.time_pressure"
+      ],
+      "confidence": 0.685,
+      "risk_score": 34,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 2400.5250000045635,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S03",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 22000,
+      "communication_count": 1,
+      "has_critical_evidence": true,
+      "evidence_ids": [
+        "ev_b2a3b53f"
+      ],
+      "action": "ESCALATE",
+      "human_required": true,
+      "rationale_refs": [
+        "ev_b2a3b53f",
+        "rule.critical_scam_evidence",
+        "rule.risk_gte_85"
+      ],
+      "confidence": 0.89,
+      "risk_score": 100,
+      "critical_evidence_present": true,
+      "high_impact": true,
+      "latency_ms": 2430.805900017731,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S04",
+      "expected_action": "VERIFY",
+      "gate_action": "VERIFY",
+      "amount": 890,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [],
+      "action": "APPROVE",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.low_risk_high_confidence"
+      ],
+      "confidence": 0.8,
+      "risk_score": 12,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 2412.1990999556147,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S05",
+      "expected_action": "VERIFY",
+      "gate_action": "VERIFY",
+      "amount": 45000,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.high_impact_anomaly"
+      ],
+      "confidence": 0.8,
+      "risk_score": 12,
+      "critical_evidence_present": false,
+      "high_impact": true,
+      "latency_ms": 2373.595100012608,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S06",
+      "expected_action": "ESCALATE",
+      "gate_action": "ESCALATE",
+      "amount": 30000,
+      "communication_count": 2,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_3bef864d"
+      ],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.high_impact_anomaly"
+      ],
+      "confidence": 0.61,
+      "risk_score": 49,
+      "critical_evidence_present": false,
+      "high_impact": true,
+      "latency_ms": 2472.2809999948367,
+      "model_calls": 2,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S07",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 6200,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_2e0b56d9"
+      ],
+      "action": "VERIFY",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.low_confidence",
+        "rule.risk_30_59"
+      ],
+      "confidence": 0.456,
+      "risk_score": 39,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 2425.488199980464,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    },
+    {
+      "scenario_id": "S08",
+      "expected_action": "HOLD",
+      "gate_action": "HOLD",
+      "amount": 9400,
+      "communication_count": 1,
+      "has_critical_evidence": false,
+      "evidence_ids": [
+        "ev_2a080661"
+      ],
+      "action": "HOLD",
+      "human_required": false,
+      "rationale_refs": [
+        "rule.risk_60_84"
+      ],
+      "confidence": 0.775,
+      "risk_score": 83,
+      "critical_evidence_present": false,
+      "high_impact": false,
+      "latency_ms": 2388.6820999905467,
+      "model_calls": 1,
+      "policy_version": "policy-1.2"
+    }
+  ],
+  "evaluators": {
+    "decision_correctness": {
+      "score": 0.375,
+      "target": 0.9,
+      "pass": false,
+      "detail": "3/8",
+      "failures": [
+        "S02: expected HOLD, got COOL_OFF",
+        "S04: expected VERIFY, got APPROVE",
+        "S05: expected VERIFY, got HOLD",
+        "S06: expected ESCALATE, got HOLD",
+        "S07: expected HOLD, got VERIFY"
+      ]
+    },
+    "critical_evidence_coverage": {
+      "score": 0.5,
+      "target": 0.95,
+      "pass": false,
+      "detail": "1/2",
+      "failures": [
+        "S01: critical evidence not flagged in the assessment"
+      ]
+    },
+    "policy_adherence": {
+      "score": 0.375,
+      "target": 1.0,
+      "pass": false,
+      "detail": "3/8",
+      "failures": [
+        "S02: recorded COOL_OFF but the gate returns HOLD",
+        "S04: recorded APPROVE but the gate returns VERIFY",
+        "S05: recorded HOLD but the gate returns VERIFY",
+        "S06: recorded HOLD but the gate returns ESCALATE",
+        "S07: recorded VERIFY but the gate returns HOLD"
+      ]
+    },
+    "grounded_rationale": {
+      "score": 1.0,
+      "target": 0.95,
+      "pass": true,
+      "detail": "11/11",
+      "failures": []
+    },
+    "escalation_safety": {
+      "score": 1.0,
+      "target": 1.0,
+      "pass": true,
+      "detail": "2/2",
+      "failures": []
+    },
+    "loop_discipline": {
+      "score": 1.0,
+      "target": 1.0,
+      "pass": true,
+      "detail": "8/8",
+      "failures": []
+    },
+    "latency_under_10s": {
+      "score": 1.0,
+      "target": 0.95,
+      "pass": true,
+      "detail": "p95 2582ms",
+      "failures": []
+    },
+    "calibration": {
+      "score": 0.6499,
+      "target": 0.8,
+      "pass": false,
+      "detail": "cohort PROXY n=8 (the evaluator as it stood at 597ae42) | ECE 0.350 | 0.46->0.00 (n=1), 0.65->0.00 (n=2), 0.81->0.60 (n=5)",
+      "failures": [
+        "bucket 1: stated 0.46 but observed 0.00 - overconfident by 0.46",
+        "bucket 2: stated 0.65 but observed 0.00 - overconfident by 0.65"
+      ]
+    }
+  },
+  "note": "Regenerated 2026-09-14 from a worktree at 597ae42 (the commit before the live-path fix, c283cec), with Supabase and PRISM disabled. Timestamp is that commit's, so this run sorts where the code it measures sits in history. The original pre-fix live run was discarded as scratch before anyone realised it was the 'before' half of the finding. Calibration is recomputed with the cohort proxy that evaluator used; the holdout-backed evaluator did not exist yet."
+}

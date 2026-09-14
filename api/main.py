@@ -397,7 +397,14 @@ def eval_runs() -> dict:
                 ],
             }
         )
-    runs.sort(key=lambda r: r["timestamp"])
+    # Parse, don't string-compare: a run stamped in +05:30 sorted after one stamped in UTC.
+    def _when(r: dict) -> float:
+        try:
+            return datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00")).timestamp()
+        except (ValueError, AttributeError):
+            return 0.0
+
+    runs.sort(key=_when)
     return {"runs": runs}
 
 
