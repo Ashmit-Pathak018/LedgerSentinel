@@ -1,1 +1,450 @@
-{}
+{
+  "S01": [
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S01",
+      "evidence_span": [
+        152,
+        200
+      ],
+      "redacted_quote": "Sir, this is Inspector Sharma from the Cyber Crime Division."
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S01",
+      "evidence_span": [
+        201,
+        243
+      ],
+      "redacted_quote": "We have detected suspicious activity on your account ending with ****. A sum of Rs 8,00,000 has been flagged. You must immediatly transfer your remaining balance"
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S01",
+      "evidence_span": [
+        244,
+        293
+      ],
+      "redacted_quote": "to this safe RBI account ****-****-****-****"
+    },
+    {
+      "signal_type": "otp_request",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S01",
+      "evidence_span": [
+        294,
+        312
+      ],
+      "redacted_quote": "Share the OTP you receive now."
+    },
+    {
+      "signal_type": "threat",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S01",
+      "evidence_span": [
+        323,
+        353
+      ],
+      "redacted_quote": "If you do not comply within 15 minutes, we will be forced to issue an arrest warrant."
+    },
+    {
+      "signal_type": "secrecy_request",
+      "value": 0.8,
+      "confidence": 0.8,
+      "source_ref": "S01",
+      "evidence_span": [
+        355,
+        373
+      ],
+      "redacted_quote": "Do not inform anyone about this call — it is a classified investigation."
+    }
+  ],
+  "S02": [
+    {
+      "signal_type": "investment_lure",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S02",
+      "evidence_span": [
+        13,
+        97
+      ],
+      "redacted_quote": "exclusive investment opportunity. Our AI-powered trading platform guarantees 40% monthly returns with zero risk."
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S02",
+      "evidence_span": [
+        98,
+        112
+      ],
+      "redacted_quote": "Limited spots available — this offer expires in 2 hours."
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S02",
+      "evidence_span": [
+        115,
+        133
+      ],
+      "redacted_quote": "Transfer Rs 50,000 to account *** to get started today."
+    }
+  ],
+  "S03": [
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S03",
+      "evidence_span": [
+        13,
+        66
+      ],
+      "redacted_quote": "I am calling from Microsoft Technical Support."
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S03",
+      "evidence_span": [
+        67,
+        95
+      ],
+      "redacted_quote": "virus that is stealing your banking information. Please download AnyDesk from the link I will send you and give me the access code so I can remove the virus immediately. …"
+    },
+    {
+      "signal_type": "remote_access_request",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S03",
+      "evidence_span": [
+        86,
+        123
+      ],
+      "redacted_quote": "download AnyDesk from the link I will send you and give me the access code so I can remove the virus immediately."
+    },
+    {
+      "signal_type": "threat",
+      "value": 0.6,
+      "confidence": 0.6,
+      "source_ref": "S03",
+      "evidence_span": [
+        95,
+        112
+      ],
+      "redacted_quote": "Your data is at risk every minute you wait."
+    }
+  ],
+  "S04": [
+    {
+      "signal_type": "urgency",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S04",
+      "evidence_span": [
+        13,
+        101
+      ],
+      "redacted_quote": "Reply immediatly to avoid permanent account closure."
+    },
+    {
+      "signal_type": "otp_request",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S04",
+      "evidence_span": [
+        64,
+        74
+      ],
+      "redacted_quote": "share the 6-digit OTP sent to your registered mobile."
+    },
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S04",
+      "evidence_span": [
+        0,
+        21
+      ],
+      "redacted_quote": "Dear Customer, your SBI account has been temporarily blocked due to KYC expiry."
+    },
+    {
+      "signal_type": "threat",
+      "value": 0.75,
+      "confidence": 0.75,
+      "source_ref": "S04",
+      "evidence_span": [
+        102,
+        123
+      ],
+      "redacted_quote": "avoid permanent account closure."
+    }
+  ],
+  "S05": [
+    {
+      "signal_type": "urgency",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S05",
+      "evidence_span": [
+        10,
+        63
+      ],
+      "redacted_quote": "If this was not you, please call our helpline at ****-XXX-XXXX immediately."
+    },
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.75,
+      "confidence": 0.75,
+      "source_ref": "S05",
+      "evidence_span": [
+        1,
+        10
+      ],
+      "redacted_quote": "please call our helpline at ****-XXX-XXXX immediately."
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.65,
+      "confidence": 0.65,
+      "source_ref": "S05",
+      "evidence_span": [
+        29,
+        47
+      ],
+      "redacted_quote": "call our helpline at ****-XXX-XXXX immediately."
+    }
+  ],
+  "S06": [
+    {
+      "signal_type": "urgency",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S06",
+      "evidence_span": [
+        0,
+        147
+      ],
+      "redacted_quote": "Beta, this is your uncle calling. I am in serious trouble and need Rs 3,00,000 urgently. Please transfer to this account immediately: ****-****-****-**"
+    },
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S06",
+      "evidence_span": [
+        147,
+        174
+      ],
+      "redacted_quote": "Beta, this is your uncle calling."
+    },
+    {
+      "signal_type": "secrecy_request",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S06",
+      "evidence_span": [
+        202,
+        233
+      ],
+      "redacted_quote": "Do not tell your parents — they will worry and it will make things worse."
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S06",
+      "evidence_span": [
+        236,
+        262
+      ],
+      "redacted_quote": "Please transfer to this account immediately: ****-****-****-**"
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S06",
+      "evidence_span": [
+        265,
+        283
+      ],
+      "redacted_quote": "Please hurry, the deadline is in 1 hour."
+    }
+  ],
+  "S07": [
+    {
+      "signal_type": "urgency",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S07",
+      "evidence_span": [
+        11,
+        44
+      ],
+      "redacted_quote": "Offer valid for 24 hours only."
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S07",
+      "evidence_span": [
+        45,
+        72
+      ],
+      "redacted_quote": "pay the processing fee of Rs 5,000 to account xxxx xxxx xxxx."
+    },
+    {
+      "signal_type": "secrecy_request",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S07",
+      "evidence_span": [
+        73,
+        95
+      ],
+      "redacted_quote": "Do not share this message with others to ensure your claim is processed."
+    },
+    {
+      "signal_type": "investment_lure",
+      "value": 0.8,
+      "confidence": 0.8,
+      "source_ref": "S07",
+      "evidence_span": [
+        1,
+        10
+      ],
+      "redacted_quote": "You have won Rs 25,00,000 in the WhatsApp Lucky Draw ****!"
+    }
+  ],
+  "S08": [
+    {
+      "signal_type": "authority_impersonation",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "S08",
+      "evidence_span": [
+        15,
+        103
+      ],
+      "redacted_quote": "This is Senior Inspector Verma, Economic Offences Wing, Mumbai Police."
+    },
+    {
+      "signal_type": "urgency",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S08",
+      "evidence_span": [
+        104,
+        113
+      ],
+      "redacted_quote": "You must cooperate now or face immediate arrest."
+    },
+    {
+      "signal_type": "payment_redirect",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "S08",
+      "evidence_span": [
+        123,
+        152
+      ],
+      "redacted_quote": "Transfer Rs 15,00,000 to the court escrow account ****-****-****-**"
+    },
+    {
+      "signal_type": "otp_request",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "S08",
+      "evidence_span": [
+        153,
+        162
+      ],
+      "redacted_quote": "I am sending you a verification OTP — read it to me."
+    },
+    {
+      "signal_type": "secrecy_request",
+      "value": 0.8,
+      "confidence": 0.8,
+      "source_ref": "S08",
+      "evidence_span": [
+        163,
+        182
+      ],
+      "redacted_quote": "Do not contact your bank or lawyer — this is a sealed investigation under Section 120B IPC."
+    },
+    {
+      "signal_type": "remote_access_request",
+      "value": 0.75,
+      "confidence": 0.75,
+      "source_ref": "S08",
+      "evidence_span": [
+        165,
+        184
+      ],
+      "redacted_quote": "Install TeamViewer so our technical team can verify your bank statements."
+    },
+    {
+      "signal_type": "threat",
+      "value": 0.7,
+      "confidence": 0.7,
+      "source_ref": "S08",
+      "evidence_span": [
+        105,
+        113
+      ],
+      "redacted_quote": "You must cooperate now or face immediate arrest."
+    }
+  ],
+  "ADV01": [
+    {
+      "signal_type": "urgency",
+      "value": 0.95,
+      "confidence": 0.95,
+      "source_ref": "ADV01",
+      "evidence_span": [
+        22,
+        66
+      ],
+      "redacted_quote": "Tranfer Rs 5 lakh immediately to safe account *** or face arrest."
+    },
+    {
+      "signal_type": "threat",
+      "value": 0.85,
+      "confidence": 0.85,
+      "source_ref": "ADV01",
+      "evidence_span": [
+        67,
+        77
+      ],
+      "redacted_quote": "or face arrest."
+    },
+    {
+      "signal_type": "otp_request",
+      "value": 0.9,
+      "confidence": 0.9,
+      "source_ref": "ADV01",
+      "evidence_span": [
+        79,
+        89
+      ],
+      "redacted_quote": "Share your OTP now."
+    }
+  ],
+  "ADV02": []
+}

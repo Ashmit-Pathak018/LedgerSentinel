@@ -41,22 +41,23 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def _parse_signal_json(raw: str) -> list[dict[str, Any]]:
+def _parse_signal_json(raw: str, source_text: str = "") -> list[dict[str, Any]]:
     """
     Robustly parse Gemma's JSON output.
     Handles:
       - Clean JSON array
       - JSON wrapped in markdown code fences
       - Partial arrays (truncated at token limit)
+      - Text provenance matching for quotes and messy evidence_span formats
     """
-    text = raw.strip()
+    raw_clean = raw.strip()
     # Clean SentencePiece tokens like   (\u2581) which Gemma 3n emits into whitespace
-    text = text.replace("\u2581", " ")
+    raw_clean = raw_clean.replace("\u2581", " ")
 
     # Strip markdown code fences if present
-    text = re.sub(r"^```(?:json)?\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
-    text = text.strip()
+    raw_clean = re.sub(r"^```(?:json)?\s*", "", raw_clean)
+    raw_clean = re.sub(r"\s*```$", "", raw_clean)
+    raw_clean = raw_clean.strip()
 
     def _normalize_signal_dicts(items: list) -> list[dict[str, Any]]:
         cleaned = []
@@ -74,24 +75,59 @@ def _parse_signal_json(raw: str) -> list[dict[str, Any]]:
                     item["confidence"] = float(item["confidence"])
                 except ValueError:
                     pass
+
+            # Quote normalization
+            if "quote" in item and "redacted_quote" not in item:
+                item["redacted_quote"] = item["quote"]
+            raw_quote = item.get("redacted_quote") or item.get("quote") or ""
+            quote = str(raw_quote).replace("\u2581", " ").strip()
+            if quote:
+                item["redacted_quote"] = quote
+
+            # Robust evidence_span handling
+            span_resolved = False
             raw_span = item.get("evidence_span")
-            if isinstance(raw_span, (list, tuple)) and len(raw_span) == 2:
-                # The contract shape. Normalise to the internal object.
-                item["evidence_span"] = {"start": raw_span[0], "end": raw_span[1]}
-            if "evidence_span" in item and isinstance(item["evidence_span"], dict):
-                span = item["evidence_span"]
-                for k in ["start", "end"]:
-                    if k in span and isinstance(span[k], str):
-                        try:
-                            span[k] = int(span[k])
-                        except ValueError:
-                            pass
+
+            # 1. If quote is in source text, derive exact text span for genuine provenance
+            if source_text and quote and quote in source_text:
+                start = source_text.index(quote)
+                item["evidence_span"] = {"start": start, "end": start + len(quote)}
+                span_resolved = True
+
+            # 2. Try parsing list/tuple
+            if not span_resolved and isinstance(raw_span, (list, tuple)):
+                if len(raw_span) == 1 and isinstance(raw_span[0], str) and "," in raw_span[0]:
+                    parts = [p.strip() for p in raw_span[0].split(",") if p.strip()]
+                    if len(parts) >= 2:
+                        raw_span = parts[:2]
+                if len(raw_span) >= 2:
+                    try:
+                        s = int(str(raw_span[0]).strip())
+                        e = int(str(raw_span[1]).strip())
+                        item["evidence_span"] = {"start": s, "end": e}
+                        span_resolved = True
+                    except (ValueError, TypeError):
+                        pass
+
+            # 3. Try parsing dict with start and end
+            if not span_resolved and isinstance(raw_span, dict) and "start" in raw_span and "end" in raw_span:
+                try:
+                    s_val = str(raw_span["start"]).split(",")[0].strip()
+                    e_val = str(raw_span["end"]).split(",")[-1].strip()
+                    item["evidence_span"] = {"start": int(s_val), "end": int(e_val)}
+                    span_resolved = True
+                except (ValueError, TypeError):
+                    pass
+
+            if not span_resolved:
+                item["evidence_span"] = None
+
             cleaned.append(item)
         return cleaned
 
     # Attempt direct parse
     try:
-        result = json.loads(text)
+        result = json.loads(raw_clean)
         if isinstance(result, list):
             return _normalize_signal_dicts(result)
         if isinstance(result, dict):
@@ -101,7 +137,7 @@ def _parse_signal_json(raw: str) -> list[dict[str, Any]]:
         pass
 
     # Attempt to extract the first complete JSON array with regex
-    match = re.search(r"\[.*\]", text, re.DOTALL)
+    match = re.search(r"\[.*\]", raw_clean, re.DOTALL)
     if match:
         try:
             parsed = json.loads(match.group())
@@ -110,7 +146,7 @@ def _parse_signal_json(raw: str) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             pass
 
-    logger.warning("Could not parse Gemma output as JSON array. Raw: %s", text[:200])
+    logger.warning("Could not parse Gemma output as JSON array. Raw: %s", raw_clean[:200])
     return []
 
 
@@ -141,7 +177,7 @@ async def extract_signals_from_text(
     latency_ms = (time.perf_counter() - t0) * 1000
 
     raw_output = response.choices[0].message.content or ""
-    raw_signals = _parse_signal_json(raw_output)
+    raw_signals = _parse_signal_json(raw_output, source_text=redacted_text)
 
     logger.info(
         "Gemma extraction: %d raw signals, %.0f ms, redaction=%s",
@@ -152,9 +188,15 @@ async def extract_signals_from_text(
     calibrated_dicts = apply_calibration(raw_signals)
 
     # ── Parse into validated Signal objects ───────────────────────────────────
+    # NOTE: Gemma frequently omits source_ref from individual signal objects
+    # even though the prompt instructs it. We inject it as a fallback here so
+    # signals are never silently dropped due to this missing required field.
     signals: list[Signal] = []
     for s in calibrated_dicts:
         try:
+            # Ensure source_ref is present (Gemma may omit it)
+            if "source_ref" not in s or not s["source_ref"]:
+                s = {**s, "source_ref": source_ref}
             signals.append(Signal(**s))
         except Exception as exc:
             logger.warning("Dropping malformed signal: %s — %s", s, exc)

@@ -1,23 +1,18 @@
 """
 Signal and related Pydantic schemas.
-
 CONTRACT (frozen with team in Phase 0 — do not modify solo):
   Signal = {
     signal_type, value, confidence, source_ref, evidence_span, redacted_quote
   }
-
 HARD RULE:
   signal_type is NEVER an action string.
   Actions (APPROVE / VERIFY / COOL_OFF / HOLD / ESCALATE) are emitted ONLY
   by Yashraj's deterministic policy gate. If signal_type ever equals one of
   those strings, this validator will raise immediately.
 """
-
 from __future__ import annotations
-
 from typing import Literal
 from pydantic import BaseModel, field_serializer, field_validator, model_validator
-
 # ── Eight frozen fraud signal labels ─────────────────────────────────────────
 SignalType = Literal[
     "urgency",
@@ -29,23 +24,29 @@ SignalType = Literal[
     "threat",
     "investment_lure",
 ]
-
 # Guard against architecture violations at the schema level
 _FORBIDDEN_SIGNAL_VALUES = {
     "approve", "verify", "cool_off", "hold", "escalate"
 }
-
-
 class EvidenceSpan(BaseModel):
     """Character offsets into the (redacted) source text."""
     start: int
     end: int
-
-
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_span(cls, data: Any) -> Any:
+        if isinstance(data, (list, tuple)) and len(data) == 2:
+            return {"start": data[0], "end": data[1]}
+        return data
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, (list, tuple)) and len(other) == 2:
+            return (self.start, self.end) == (other[0], other[1])
+        if isinstance(other, EvidenceSpan):
+            return (self.start, self.end) == (other.start, other.end)
+        return super().__eq__(other)
 class Signal(BaseModel):
     """
     A single fraud signal emitted by the model service.
-
     Invariants:
     - value and confidence are in [0.0, 1.0]
     - signal_type is one of the eight frozen labels
@@ -57,7 +58,6 @@ class Signal(BaseModel):
     source_ref: str        # e.g. "sms_msg_id_xyz", "voice_chunk_12"
     evidence_span: EvidenceSpan | None = None
     redacted_quote: str | None = None   # <=25 words, PII replaced with ***
-
     # The frozen contract (contracts/json/signal.schema.json) specifies evidence_span as
     # [start, end) - a two-element array, which is what the UI indexes to highlight in place.
     # EvidenceSpan stays as the internal type because it is pleasanter to work with; this
@@ -65,14 +65,12 @@ class Signal(BaseModel):
     @field_serializer("evidence_span")
     def _span_as_array(self, v: "EvidenceSpan | None") -> list[int] | None:
         return None if v is None else [v.start, v.end]
-
     @field_validator("value", "confidence")
     @classmethod
     def clamp_to_unit_interval(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
             raise ValueError(f"Score must be in [0.0, 1.0], got {v}")
         return round(v, 4)
-
     @field_validator("signal_type")
     @classmethod
     def reject_action_strings(cls, v: str) -> str:
@@ -83,17 +81,16 @@ class Signal(BaseModel):
                 "Only the policy gate emits actions."
             )
         return v
-
     @field_validator("redacted_quote")
     @classmethod
-    def check_quote_length(cls, v: str) -> str:
+    def check_quote_length(cls, v: str | None) -> str | None:
+        if not v:
+            return v
         words = v.split()
         if len(words) > 30:
             # Truncate silently rather than hard-fail — quote may be slightly over
             return " ".join(words[:30]) + " …"
         return v
-
-
 class SignalBatch(BaseModel):
     """The full response from both /text/score and /voice/score endpoints."""
     signals: list[Signal]
@@ -101,3 +98,15 @@ class SignalBatch(BaseModel):
     source_ref: str
     redaction_ran: bool
     latency_ms: float | None = None
+class StreamChunkMetadata(BaseModel):
+    chunk_index: int
+    char_start: int
+    char_end: int
+    source_ref: str
+class StreamChunkResponse(BaseModel):
+    metadata: StreamChunkMetadata
+    signals: list[Signal]
+class VoiceStreamEnvelope(BaseModel):
+    signals: list[Signal]
+    chunks: list[StreamChunkResponse]
+    metadata: dict

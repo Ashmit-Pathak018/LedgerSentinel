@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import text, voice
+from app.routers import text, voice, fuse
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -49,6 +49,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(text.router,  prefix="/model")
 app.include_router(voice.router, prefix="/model")
+app.include_router(fuse.router,  prefix="/model")
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

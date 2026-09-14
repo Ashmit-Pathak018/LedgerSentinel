@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     # ── Model identifiers ─────────────────────────────────────────────────────
     GEMMA_MODEL: str = "gemma3n:e4b"
     QWEN_MODEL: str = "qwen3:4b-q8_0"
+    QWEN_THINKING: bool = False
 
     # ── Version strings ───────────────────────────────────────────────────────
     MODEL_VERSION: str = "gemma3n-e4b-v1.0"
