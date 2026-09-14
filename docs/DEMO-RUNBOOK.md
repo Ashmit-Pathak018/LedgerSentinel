@@ -9,8 +9,9 @@ below was clicked, not assumed. Budget: **4 minutes** for the console, leaving t
 # terminal 1 - API (mock models; the demo's fallback and the path that was measured)
 cd api && python -m uvicorn main:app --port 8080 --log-level warning
 
-# terminal 2 - console
-cd web && npx vite --port 5176 --strictPort
+# terminal 2 - console. npm install FIRST: the landing page pulls in `three`, and a checkout
+# that skipped it shows a red Vite overlay on every page, #app included.
+cd web && npm install && npx vite --port 5176 --strictPort
 
 # terminal 3 - prove it, in front of nobody
 python eval/run.py --live --base http://localhost:8080 --label rehearsal
@@ -19,8 +20,10 @@ python eval/run.py --live --base http://localhost:8080 --label rehearsal
 Expect `8/8` decisions. If anything else, do not go on stage with the console; fall back to
 the eval table (it is the same evidence, printed).
 
-Open `http://localhost:5176`, click **Transactions** in the sidebar, and leave it there.
-Do **not** open the floating "Interactive Demo" sparkle. See *Hazards*.
+Open **`http://localhost:5176/#app`** - the `#app` matters: the bare URL now opens Yash's 3D
+landing page, and the console is behind its "Launch" button. Click **Transactions** in the
+sidebar and leave it there. Do **not** open the floating "Interactive Demo" sparkle, and do not
+touch the **← Product Page** button in the top bar mid-demo. See *Hazards*.
 
 The **PRISM Observability** screen reads PRISM through the API, so it needs the network and
 `api/.env` to hold the PRISM key. If PRISM is unreachable the screen says so in amber and the
