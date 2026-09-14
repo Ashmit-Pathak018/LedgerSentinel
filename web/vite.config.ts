@@ -9,7 +9,7 @@ export default defineConfig({
     alias: {
       // The frozen contracts live outside web/. Import them as @contracts so there is exactly
       // one definition of Signal/Evidence/Assessment/Decision in the whole repo.
-      '@contracts': path.resolve(__dirname, '../contracts/ts/contracts.ts'),
+      '@contracts': path.resolve(import.meta.dirname, '../contracts/ts/contracts.ts'),
     },
   },
   server: {

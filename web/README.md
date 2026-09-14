@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# LedgerSentinel Web Console
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A clean, spacious, professional enterprise banking fraud detection console.
 
-Currently, two official plugins are available:
+## Architecture & Design System
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Desktop-First**: Designed for a 1440px × 900px banking console target with generous whitespace and clear hierarchy.
+- **Separated Risk vs. Confidence**: Enforces the critical rule that risk score (0–100) and signal confidence (0–100%) are visually and mathematically separate.
+- **Deterministic Policy Gate**: Visualizes how AI models emit evidence signals while the deterministic policy gate retains sole authority over actions.
+- **Autonomy Ladder**: Demonstrates bounded AI autonomy (`APPROVE` → `VERIFY` → `COOL_OFF` → `HOLD` → `ESCALATE`) degrading gracefully to human oversight.
+- **Privacy & Minimisation**: Implements DPDP principles where signals travel but raw message transcripts stay local on-device.
 
-## React Compiler
+## Core Screens
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Fraud Operations Dashboard**: High-level KPI cards, risk distribution, risk vs. confidence scatter plot, and recent decisions.
+2. **Transactions Explorer**: Search and multi-filter transaction exploration with direct investigation links.
+3. **Transaction Investigation**: In-depth analysis screen with 4 separate summary blocks, Autonomy Ladder, Policy Gate pipeline visualizer, and horizontal evidence timeline.
+4. **Communication Analysis**: Multi-channel timeline (Voice, SMS, Email, Image) with redacted transcripts and ranked Bayesian signals.
+5. **Case Management**: Queue workflow (Open, In Progress, Escalated, Resolved), SLA tracking, timeline, and analyst notes.
+6. **Step-up Verification**: Out-of-band IAL2 identity challenge with live status stepper.
+7. **Privacy & Consent**: Channel permission matrix and interactive consent revocation consequence simulation.
+8. **PRISM Evaluation**: Model benchmark comparing V1 vs. V2, failure analysis, and 6-stage decision trace pipeline.
+9. **Audit Trail**: Cryptographically verified immutable decision ledger.
+10. **Interactive Demo Walkthrough**: 15-step guided narrative tour for end-to-end evaluation.
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+```bash
+# Install dependencies
+npm install
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Start Vite dev server
+npm run dev
+
+# Run build verification
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

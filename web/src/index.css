@@ -1,50 +1,43 @@
 @import "tailwindcss";
 
-/* Design tokens from the PRD's design system.
-   Yash owns this file - a working starting point, not a finished palette. */
-@theme {
-  --color-ground: #0d1117;
-  --color-surface: #161b22;
-  --color-surface-2: #1c2430;
-  --color-line: #2a3441;
-  --color-ink: #e6edf3;
-  --color-ink-2: #9aa8b6;
-  --color-ink-3: #6b7986;
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --navy-primary: #0f172a;
+    --navy-dark: #020617;
+    --accent-blue: #2563eb;
+    --slate-text: #64748b;
+    --border-subtle: #e2e8f0;
+  }
 
-  /* Primary / action */
-  --color-brand: #4a8fe0;
-  --color-brand-soft: #16283d;
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
 
-  /* The action ladder. Semantic, and separate from the brand colour.
-     Never use colour alone to convey state - always pair it with text or an icon. */
-  --color-approve: #3fbd97;
-  --color-verify: #d8a33d;
-  --color-cooloff: #e08a4e;
-  --color-hold: #e08a4e;
-  --color-escalate: #e8706b;
-
-  --color-approve-soft: #122c26;
-  --color-verify-soft: #2e2716;
-  --color-cooloff-soft: #312217;
-  --color-hold-soft: #312217;
-  --color-escalate-soft: #331d1d;
-
-  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", monospace;
+  * {
+    box-sizing: border-box;
+  }
 }
 
-html,
-body,
-#root {
-  height: 100%;
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-body {
-  background: var(--color-ground);
-  color: var(--color-ink);
-  margin: 0;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-/* Digits that sit in columns should line up. */
-.tnum {
-  font-variant-numeric: tabular-nums;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
