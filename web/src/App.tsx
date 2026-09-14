@@ -41,9 +41,9 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F8FAFC]">
+    <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#F8FAFC]">
       <TopBar />
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 overflow-y-auto no-scrollbar scroll-smooth">
         {renderScreen()}
       </main>
       <DemoController />
@@ -54,7 +54,7 @@ const MainContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <FraudProvider>
-      <div className="flex min-h-screen bg-[#F8FAFC] text-[#0F172A] selection:bg-blue-100 selection:text-blue-900">
+      <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-[#0F172A] selection:bg-blue-100 selection:text-blue-900">
         <Sidebar />
         <MainContent />
       </div>

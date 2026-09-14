@@ -19,6 +19,7 @@
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   * {
@@ -26,7 +27,16 @@
   }
 }
 
-/* Custom subtle scrollbar */
+/* Invisible scrollbar utility */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom subtle scrollbar (for other areas if needed) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
