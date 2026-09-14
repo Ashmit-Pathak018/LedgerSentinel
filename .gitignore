@@ -31,8 +31,9 @@ secrets.env
 models/weights/
 models/.cache/
 
-# Evaluation output - regenerate it, don't version it
-eval/runs/
+# Evaluation output.
+# eval/runs/ IS versioned on purpose: v1.json is the before half of the V1->V2 comparison and
+# must not be regenerated after the fix lands, or the comparison is destroyed.
 eval/out/
 
 # Editors / OS
