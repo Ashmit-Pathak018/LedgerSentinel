@@ -11,9 +11,11 @@ The gate is the only step that produces an action. Everything before it produces
 
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -348,6 +350,55 @@ def set_consent(customer_id: str, body: ConsentUpdate) -> dict:
     """
     STORE.set_consent(customer_id, body.channel, body.granted)
     return {"customer_id": customer_id, "channels": STORE.get_consent(customer_id)}
+
+
+@app.get("/v1/observability/prism")
+def observability_prism() -> dict:
+    """What PRISM has recorded about this service, proxied so the key never reaches a browser.
+
+    Read-only, bounded by PRISMTRACE_READ_TIMEOUT_SECONDS, and it returns available=false
+    rather than erroring. It is the one endpoint that waits on PRISM; analyze() never does.
+    """
+    return prism.read_summary()
+
+
+EVAL_RUNS = Path(__file__).resolve().parent.parent / "eval" / "runs"
+
+
+@app.get("/v1/eval/runs")
+def eval_runs() -> dict:
+    """Every saved cohort run, oldest first - V1's failure through to the current state.
+
+    eval/runs/ is committed on purpose (see the .gitignore comment there): v1.json is the
+    "before" half of the PRISM story and this is how the console shows it next to "after".
+    """
+    runs = []
+    for p in sorted(EVAL_RUNS.glob("*.json")) if EVAL_RUNS.exists() else []:
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        runs.append(
+            {
+                "label": d.get("label", p.stem),
+                "mode": d.get("mode", ""),
+                "timestamp": d.get("timestamp", ""),
+                "policy_version": d.get("policy_version", ""),
+                "evaluators": d.get("evaluators", {}),
+                "scenarios": [
+                    {
+                        k: s.get(k)
+                        for k in (
+                            "scenario_id", "expected_action", "action", "risk_score",
+                            "confidence", "latency_ms", "rationale_refs",
+                        )
+                    }
+                    for s in d.get("scenarios", [])
+                ],
+            }
+        )
+    runs.sort(key=lambda r: r["timestamp"])
+    return {"runs": runs}
 
 
 def _policy_input(

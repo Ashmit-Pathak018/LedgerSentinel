@@ -22,6 +22,10 @@ the eval table (it is the same evidence, printed).
 Open `http://localhost:5176`, click **Transactions** in the sidebar, and leave it there.
 Do **not** open the floating "Interactive Demo" sparkle. See *Hazards*.
 
+The **PRISM Observability** screen reads PRISM through the API, so it needs the network and
+`api/.env` to hold the PRISM key. If PRISM is unreachable the screen says so in amber and the
+cohort table still renders from `eval/runs/` - that half never depends on the network.
+
 ## The four minutes
 
 | t | Click | Say |
@@ -33,7 +37,8 @@ Do **not** open the floating "Interactive Demo" sparkle. See *Hazards*.
 | 1:50 | Sidebar **Transactions** → row **txn_031** | "Same customer type, different story. Florence, Italy, 890 euros, at a merchant. The location is abnormal. A naive geo-rule blocks this." |
 | 2:15 | **Policy Decision** tab | "Risk 32, so it steps up to VERIFY - a push notification, thirty seconds of friction - and never blocks. The system is not paranoid, it is bounded." |
 | 2:45 | *(stay here)* | "Five rungs. Approve, verify, cool-off, hold, escalate. Every rule proposes; the most restrictive wins. Uncertainty can only move you **up**." |
-| 3:15 | Terminal 3 | Run the S07 line below and read the result. |
+| 3:00 | Sidebar **PRISM Observability** | "Every call is traced to PRISM. The gate is under a millisecond - it's code. And this table is the same eight scenarios re-run after each fix: critical-evidence coverage went from zero to a hundred with every action unchanged. PRISM found a reasoning bug, not a threshold to tune." |
+| 3:30 | Terminal 3 | Run the S07 line below and read the result. |
 
 ### The rule-5 moment (terminal)
 

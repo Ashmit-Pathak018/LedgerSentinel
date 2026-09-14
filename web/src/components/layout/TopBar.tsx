@@ -15,6 +15,7 @@ export const TopBar: React.FC = () => {
     stepup: 'Step-up Verification',
     privacy: 'Consent & Privacy',
     audit: 'Audit Trail',
+    prism: 'PRISM Observability',
   };
 
   const currentTitle = screenTitleMap[currentScreen] || 'Overview';

@@ -12,7 +12,8 @@ export type NavScreen =
   | 'communications'
   | 'stepup'
   | 'privacy'
-  | 'audit';
+  | 'audit'
+  | 'prism';
 
 export interface EvidenceSignal {
   id: string;

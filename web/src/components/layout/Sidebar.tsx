@@ -46,6 +46,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { id: 'privacy', label: 'Consent & Privacy', icon: FileLock2 },
       { id: 'audit', label: 'Audit Trail', icon: History },
+      { id: 'prism', label: 'PRISM Observability', icon: Activity },
     ],
   },
 ];

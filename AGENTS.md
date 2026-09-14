@@ -41,6 +41,11 @@ Tracing is currently wired at: `api/prism.py` (the tracer), `api/main.py` (agent
 analysis, plus a tool span around the policy gate), `api/models_client.py` (a model-call span
 per extraction call, success and failure).
 
+Reading back: `prism.read_summary()` behind `GET /v1/observability/prism`, which the console's
+PRISM Observability screen uses (`web/src/views/PrismObservabilityView.tsx`). The key stays in
+`api/.env`; the browser only ever sees the proxied summary. `GET /v1/eval/runs` serves the
+saved cohort runs so the screen can show V1 → current next to the live numbers.
+
 **Standing rule.** Whenever you add or change an agent, chain, graph, tool,
 retriever, or any entry point that calls a model, wire it to PRISM before you
 finish. Unwired code is invisible in the dashboard. If you are unsure whether

@@ -13,6 +13,7 @@ import { CaseManagementView } from './views/CaseManagementView';
 import { StepUpVerificationView } from './views/StepUpVerificationView';
 import { PrivacyConsentView } from './views/PrivacyConsentView';
 import { AuditTrailView } from './views/AuditTrailView';
+import { PrismObservabilityView } from './views/PrismObservabilityView';
 
 const MainContent: React.FC = () => {
   const { currentScreen } = useFraud();
@@ -35,6 +36,8 @@ const MainContent: React.FC = () => {
         return <PrivacyConsentView />;
       case 'audit':
         return <AuditTrailView />;
+      case 'prism':
+        return <PrismObservabilityView />;
       default:
         return <DashboardView />;
     }

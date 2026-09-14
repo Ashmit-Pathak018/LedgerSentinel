@@ -66,6 +66,42 @@ export const analyze = (body: AnalyzeRequest) =>
 
 export const audit = () => request<Record<string, unknown>[]>('/v1/audit')
 
+/** One saved cohort run from eval/runs/. V1 is the before half of the PRISM story. */
+export interface EvalRun {
+  label: string
+  mode: string
+  timestamp: string
+  policy_version: string
+  evaluators: Record<string, { score: number; target: number; pass: boolean; detail: string }>
+  scenarios: {
+    scenario_id: string
+    expected_action: string
+    action: string
+    risk_score: number
+    confidence: number
+    latency_ms: number
+    rationale_refs: string[]
+  }[]
+}
+
+/** What PRISM has recorded, proxied by the API. The key never reaches this code. */
+export interface PrismSummary {
+  available: boolean
+  reason?: string
+  host: string
+  project: string
+  totals?: { period: string; total_traces: number; avg_latency_ms: number }
+  latency: { span: string; n: number; p50_ms: number; p95_ms: number }[]
+  trajectories: {
+    session_id: string
+    started_at: string
+    spans: { kind: string; model: string; latency_ms: number; preview: string; at: string }[]
+  }[]
+}
+
+export const evalRuns = () => request<{ runs: EvalRun[] }>('/v1/eval/runs')
+export const prismSummary = () => request<PrismSummary>('/v1/observability/prism')
+
 /** The two demo scenarios, so the UI has something real to open with. */
 export const SCENARIOS: Record<string, AnalyzeRequest & { label: string }> = {
   s01: {

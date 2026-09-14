@@ -98,6 +98,112 @@ def enabled() -> bool:
     return bool(API_KEY and PROJECT_ID)
 
 
+# ── Reading back ──────────────────────────────────────────────────────────────
+#
+# The console shows what PRISM has recorded. It cannot call PRISM itself - the key must never
+# reach a browser - so the API proxies a read-only summary through here, the one module that
+# talks to PRISM. Two deliberate omissions: no per-trace detail (nothing here identifies a
+# customer beyond what the trace already carries, which is redacted), and no satisfaction
+# scores. See AGENTS.md: the evaluator's rubric grades a correct escalation as poor service,
+# and a number that rewards missing fraud has no place on a fraud console.
+
+READ_TIMEOUT = float(os.getenv("PRISMTRACE_READ_TIMEOUT_SECONDS", "8"))
+
+
+def _get(path: str, **params: Any) -> Any:
+    r = httpx.get(
+        f"{HOST}{path}",
+        params={"project_id": PROJECT_ID, **params},
+        headers={"X-PRISMtrace-Key": API_KEY},
+        timeout=READ_TIMEOUT,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def _kind(model: str) -> str:
+    """Span type from the model label - the only field PRISM's list exposes that separates them."""
+    if model.startswith("policy-gate"):
+        return "gate"
+    if model.startswith("ledgersentinel"):
+        return "analysis"
+    return "extraction"
+
+
+def _percentile(xs: list[float], q: float) -> float:
+    if not xs:
+        return 0.0
+    s = sorted(xs)
+    return s[min(len(s) - 1, max(0, round(q * (len(s) - 1))))]
+
+
+def read_summary() -> dict[str, Any]:
+    """Latency by span type, recent trajectories, and project totals. Never raises."""
+    base: dict[str, Any] = {
+        "available": False,
+        "host": HOST,
+        "project": (PROJECT_ID[:8] + "…") if PROJECT_ID else "",
+        "latency": [],
+        "trajectories": [],
+    }
+    if not enabled():
+        return {**base, "reason": "PRISMTRACE_API_KEY / PRISMTRACE_PROJECT_ID not set"}
+    try:
+        metrics = _get("/api/metrics/summary", period="24h")
+        rows = _get("/api/traces", page_size=100, page=1).get("traces") or []
+    except Exception as e:  # noqa: BLE001 - a console panel, not a decision path
+        return {**base, "reason": f"{type(e).__name__}: {e}"[:200]}
+
+    by_kind: dict[str, list[float]] = {}
+    sessions: dict[str, list[dict[str, Any]]] = {}
+    for t in rows:
+        kind = _kind(t.get("model") or "")
+        by_kind.setdefault(kind, []).append(float(t.get("latency_ms") or 0))
+        sessions.setdefault(t.get("session_id") or "?", []).append(
+            {
+                "kind": kind,
+                "model": t.get("model") or "",
+                "latency_ms": t.get("latency_ms") or 0,
+                "preview": (t.get("input_preview") or "")[:90],
+                "at": t.get("created_at") or "",
+            }
+        )
+
+    latency = [
+        {
+            "span": k,
+            "n": len(v),
+            "p50_ms": round(_percentile(v, 0.5)),
+            "p95_ms": round(_percentile(v, 0.95)),
+        }
+        for k, v in sorted(by_kind.items(), key=lambda kv: ("extraction", "gate", "analysis").index(kv[0]) if kv[0] in ("extraction", "gate", "analysis") else 9)
+    ]
+
+    # Our sends are fire-and-forget threads, so PRISM's created_at records arrival, and a gate
+    # span routinely lands a few microseconds before the extraction span that preceded it.
+    # Within one session the order is a fact of the code, not of the network: extraction runs
+    # first, the gate decides, the analysis span closes last. Sort by that, then by time.
+    order = {"extraction": 0, "gate": 1, "analysis": 2}
+    trajectories = []
+    for sid, spans in sessions.items():
+        spans.sort(key=lambda s: (order.get(s["kind"], 9), s["at"]))
+        trajectories.append({"session_id": sid, "started_at": spans[0]["at"], "spans": spans})
+    trajectories.sort(key=lambda s: s["started_at"], reverse=True)
+
+    cur = metrics.get("current") or {}
+    return {
+        **base,
+        "available": True,
+        "totals": {
+            "period": metrics.get("period", "24h"),
+            "total_traces": cur.get("total_traces", 0),
+            "avg_latency_ms": round(cur.get("avg_latency") or 0),
+        },
+        "latency": latency,
+        "trajectories": trajectories[:6],
+    }
+
+
 def _post(payload: dict[str, Any]) -> None:
     """Runs on a daemon thread. Swallows everything."""
     global _warned
