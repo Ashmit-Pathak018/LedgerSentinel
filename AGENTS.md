@@ -126,3 +126,29 @@ demo is invisible in PRISM by design, so do not expect trajectories from it.
 
 The service needs its own `PRISMTRACE_API_KEY` in `model-service/.env` (same project id as the
 API). It is a separate process; the API's key does not reach it.
+
+**What that first trace found (open, Ashmit's lane).** The same call returned **zero signals**
+for the canonical S01 text. With Qwen3 in the Gemma slot (`GEMMA_MODEL=qwen3:4b`, the
+workaround for Gemma being broken on Ollama 0.33.3), the extraction path in
+`gemma_client.py` calls the OpenAI-compatible endpoint with no thinking control, and Qwen3
+spends the whole `max_tokens` budget thinking: 131 s, empty content. Measured on 2026-09-15
+against the same prompt through Ollama's native `/api/chat`:
+
+| call | time | result |
+|---|---|---|
+| as shipped (thinking on) | 131 s | empty content, 0 signals |
+| `think: false` | 89 s | 6,216 chars of prose, `done_reason=length`, 0 signals |
+| `think: false` + `format: "json"` | **7 s** | valid JSON, parser accepts, `urgency 0.95` |
+
+The fix is to route extraction through the native API the way `qwen_client.py` already
+does, with `think: False` and `format` set to a JSON schema for an array of signal objects
+(a bare `"json"` yields one object). Real Gemma on Ashmit's GPU does not have this problem -
+his S01 run (`eval/s01_live_signals.json`) is `gemma3n:e4b@dev` and returns five signals - so
+the scaler label `gemma3n-e4b-v1.0` is correct. The demo runs `MODELS_MOCK=true` and never
+touches this path.
+
+Also seen in that trace: the service's own `redact()` masked the account number but left
+"Rajesh" and "HDFC" intact. In the pipeline the API redacts first (`[BANK]`, names removed),
+so nothing leaks end to end - but a direct call to `/model/text/score` sends a name to the
+model and into the span. Align it with `api/redaction.py` before anyone calls the service
+directly.
