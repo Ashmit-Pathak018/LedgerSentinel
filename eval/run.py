@@ -274,7 +274,11 @@ def _compare(a: str, b: str) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run the PRISM evaluation cohort.")
-    ap.add_argument("--label", default="v1", help="name this run (default: v1)")
+    # Default used to be "v1", so a bare `python eval/run.py` silently overwrote the V1 baseline -
+    # the "before" half of the PRISM story - with whatever the code does today. It happened.
+    ap.add_argument("--label", default="dev", help="name this run (default: dev)")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite an existing run file (the versioned ones are the record)")
     ap.add_argument("--live", action="store_true", help="go through the running API")
     ap.add_argument("--base", default="http://localhost:8080", help="API base for --live")
     ap.add_argument("--compare", nargs=2, metavar=("A", "B"), help="diff two saved runs")
@@ -308,6 +312,11 @@ def main() -> int:
 
     RUNS.mkdir(parents=True, exist_ok=True)
     out = RUNS / f"{args.label}.json"
+    if out.exists() and args.label != "dev" and not args.force:
+        sys.exit(
+            f"{out} already exists and is part of the record. Pick another --label, or pass "
+            f"--force if you really mean to replace it."
+        )
     out.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
     if args.json:
