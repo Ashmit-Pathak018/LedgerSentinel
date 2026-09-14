@@ -13,6 +13,7 @@ import time
 from openai import OpenAI
 
 from app.config import get_settings
+from app.inference import prism
 from app.prompts.rationale import build_rationale_messages
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ import httpx
 
 async def synthesise_rationale(
     signals: list[dict],
+    session_id: str | None = None,
 ) -> tuple[str, float]:
     """
     Call Qwen3-4B-Q8 to synthesise a plain-English rationale paragraph.
@@ -46,10 +48,15 @@ async def synthesise_rationale(
         (rationale_text, latency_ms)
     """
     settings = get_settings()
-    messages = build_rationale_messages(signals)
+    signal_rows = [
+        signal.model_dump(mode="json") if hasattr(signal, "model_dump") else signal
+        for signal in signals
+    ]
+    messages = build_rationale_messages(signal_rows)
 
     t0 = time.perf_counter()
     rationale = ""
+    model_error: str | None = None
 
     # 1. Primary path: native Ollama API with configurable thinking toggle
     try:
@@ -73,6 +80,7 @@ async def synthesise_rationale(
             msg = data.get("message", {})
             rationale = msg.get("content", "").strip()
     except Exception as primary_exc:
+        model_error = str(primary_exc)
         logger.warning(
             "Primary Ollama native call for Qwen rationale failed (%s); trying fallback",
             primary_exc,
@@ -87,10 +95,14 @@ async def synthesise_rationale(
             )
             rationale = (response.choices[0].message.content or "").strip()
         except Exception as fallback_exc:
+            model_error = f"primary: {primary_exc}; fallback: {fallback_exc}"
             logger.error("Both Qwen rationale paths failed: %s", fallback_exc)
             # Extractive fallback if model is unreachable (preserves service continuity)
-            if signals:
-                claims = [f"{s.get('signal_type', 'signal')} (confidence: {s.get('confidence', 0.0):.2f})" for s in signals]
+            if signal_rows:
+                claims = [
+                    f"{s.get('signal_type', 'signal')} (confidence: {s.get('confidence', 0.0):.2f})"
+                    for s in signal_rows
+                ]
                 rationale = f"Detected fraud indicators: {', '.join(claims)}. Evidence patterns suggest potential financial scam."
             else:
                 rationale = "No fraud indicators detected in this communication."
@@ -111,4 +123,17 @@ async def synthesise_rationale(
             rationale = rationale.replace(act, "[action-redacted]")
 
     logger.info("Qwen rationale: %.0f ms, %d chars", latency_ms, len(rationale))
+    signal_labels = [str(signal.get("signal_type", "signal")) for signal in signal_rows]
+    signal_summary = ", ".join(signal_labels) or "none"
+    prism.trace(
+        session_id=session_id or "rationale",
+        model=settings.QWEN_MODEL,
+        input_summary=f"Synthesize an analyst rationale from validated signals: {signal_summary}",
+        output_summary=f"Rationale generated ({len(rationale)} characters).",
+        latency_ms=latency_ms,
+        operation="execute_tool",
+        agent_name="qwen_rationale_synthesizer",
+        error=model_error,
+        metadata={"signal_count": len(signals), "fallback": model_error is not None},
+    )
     return rationale, latency_ms

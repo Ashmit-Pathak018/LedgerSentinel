@@ -1,5 +1,5 @@
 {
-  "model_version": "qwen3-4b@2026-09-14",
+  "model_version": "gemma3n-e4b-v1.0",
   "holdout_rows": 20,
   "labels_fitted": [
     "authority_impersonation",
@@ -11,5 +11,5 @@
     "threat",
     "urgency"
   ],
-  "fitted_at": "2026-09-14T16:25:27+00:00"
+  "fitted_at": "2026-09-14T17:59:24+00:00"
 }

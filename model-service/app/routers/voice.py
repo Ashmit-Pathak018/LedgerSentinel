@@ -60,6 +60,7 @@ async def score_voice(req: VoiceScoreRequest) -> SignalBatch:
         signals, redaction_ran, latency_ms = await extract_signals_from_text(
             text=req.transcript,
             source_ref=f"{req.source_ref}_chunk{req.chunk_index}",
+            session_id=req.session_id,
         )
     except Exception as exc:
         logger.exception("Inference error on voice/score: %s", exc)
@@ -141,6 +142,7 @@ async def score_voice_stream(req: VoiceScoreRequest) -> VoiceStreamEnvelope:
         sigs, _, _ = await extract_signals_from_text(
             text=c.text,
             source_ref=c.source_ref,
+            session_id=req.session_id,
         )
         chunk_signals.append(sigs)
         chunk_responses.append(

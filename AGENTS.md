@@ -39,9 +39,14 @@ weeks because nobody ran it. If the two runs disagree, the live one is the bug.
 This project sends traces to PRISM. Env vars: `PRISMTRACE_API_KEY`,
 `PRISMTRACE_PROJECT_ID`, `PRISMTRACE_HOST`.
 
-Tracing is currently wired at: `api/prism.py` (the tracer), `api/main.py` (agent-run span per
-analysis, plus a tool span around the policy gate), `api/models_client.py` (a model-call span
-per extraction call, success and failure).
+Tracing is currently wired at: `api/prism.py` (the API tracer), `api/main.py` (agent-run span per
+analysis, plus a tool span around the policy gate), `api/models_client.py` (an API model-call span
+per extraction call, success and failure), `model-service/app/inference/prism.py` (the model-service
+HTTP tracer), `model-service/app/inference/gemma_client.py` (Gemma call span, success and failure),
+`model-service/app/inference/qwen_client.py` (Qwen call span, fallback and failure metadata),
+`model-service/app/models/request.py`, `model-service/app/routers/text.py`,
+`model-service/app/routers/voice.py`, and `model-service/app/routers/fuse.py` (shared session
+propagation).
 
 Reading back: `prism.read_summary()` behind `GET /v1/observability/prism`, which the console's
 PRISM Observability screen uses (`web/src/views/PrismObservabilityView.tsx`). The key stays in
@@ -64,7 +69,8 @@ something is covered, assume it is not and wire it.
   the API — group by the `model` field instead.
 - **Never trace an unredacted message.** Rule 6 redacts before inference and rule 7 forbids
   storing message bodies — so traces carry the redacted excerpt and the derived signals, never
-  a raw body. `api/prism.py` is the only place that talks to PRISM; keep it that way.
+  a raw body. `api/prism.py` and `model-service/app/inference/prism.py` are the only process-local
+  clients that talk to PRISM; keep all PRISM HTTP access inside those modules.
 - Tracing is fire-and-forget on a daemon thread and swallows every exception. PRISM being down
   must never delay or fail a fraud decision. Do not make it blocking.
 - With no API key set, tracing is a no-op. A fresh clone runs untraced rather than erroring.

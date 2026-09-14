@@ -57,6 +57,7 @@ async def score_text(req: TextScoreRequest) -> SignalBatch:
         signals, redaction_ran, latency_ms = await extract_signals_from_text(
             text=req.text,
             source_ref=req.source_ref,
+            session_id=req.session_id,
         )
     except Exception as exc:
         logger.exception("Inference error on text/score: %s", exc)

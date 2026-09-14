@@ -11,9 +11,11 @@ class TextScoreRequest(BaseModel):
                  PII redaction is applied server-side before any LLM call.
     source_ref — identifier that traces back to the original message record
                  (e.g. Supabase row ID). Passed through into every Signal.
+    session_id — optional PRISM trajectory identifier from the API.
     """
     text: str
     source_ref: str
+    session_id: str | None = None
 
 
 class VoiceScoreRequest(BaseModel):
@@ -28,6 +30,7 @@ class VoiceScoreRequest(BaseModel):
     transcript: str | None = None
     source_ref: str
     chunk_index: int = 0
+    session_id: str | None = None
 
 
 class ImageScoreRequest(BaseModel):

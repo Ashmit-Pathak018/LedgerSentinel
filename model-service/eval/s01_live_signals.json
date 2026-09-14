@@ -1,0 +1,56 @@
+[
+  {
+    "signal_type": "authority_impersonation",
+    "value": 0.95,
+    "confidence": 0.7211,
+    "source_ref": "comm_771",
+    "evidence_span": [
+      8,
+      40
+    ],
+    "redacted_quote": "Officer Sharma from RBI security",
+    "model_version": "gemma3n:e4b@dev"
+  },
+  {
+    "signal_type": "urgency",
+    "value": 0.9,
+    "confidence": 0.7109,
+    "source_ref": "comm_771",
+    "evidence_span": null,
+    "redacted_quote": "Transfer within the hour",
+    "model_version": "gemma3n:e4b@dev"
+  },
+  {
+    "signal_type": "payment_redirect",
+    "value": 0.85,
+    "confidence": 0.7006,
+    "source_ref": "comm_771",
+    "evidence_span": null,
+    "redacted_quote": "Transfer to safe account [CARD]",
+    "model_version": "gemma3n:e4b@dev"
+  },
+  {
+    "signal_type": "secrecy_request",
+    "value": 0.8,
+    "confidence": 0.69,
+    "source_ref": "comm_771",
+    "evidence_span": [
+      159,
+      196
+    ],
+    "redacted_quote": "Do not discuss this with branch staff",
+    "model_version": "gemma3n:e4b@dev"
+  },
+  {
+    "signal_type": "threat",
+    "value": 0.75,
+    "confidence": 0.6792,
+    "source_ref": "comm_771",
+    "evidence_span": [
+      135,
+      157
+    ],
+    "redacted_quote": "account will be frozen",
+    "model_version": "gemma3n:e4b@dev"
+  }
+]

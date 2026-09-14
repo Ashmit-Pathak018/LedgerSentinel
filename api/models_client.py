@@ -176,7 +176,7 @@ def score_text(source_ref: str, text: str, *, scenario: str | None = None,
     try:
         r = httpx.post(
             f"{MODELS_URL}{MODELS_PREFIX}/text/score",
-            json={"source_ref": source_ref, "text": text},
+            json={"source_ref": source_ref, "text": text, "session_id": session_id},
             timeout=TIMEOUT,
         )
         r.raise_for_status()

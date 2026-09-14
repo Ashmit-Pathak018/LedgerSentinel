@@ -22,6 +22,7 @@ from openai import OpenAI
 from app.config import get_settings
 from app.inference.redaction import redact
 from app.inference.calibration import apply_calibration
+from app.inference import prism
 from app.models.signal import Signal
 from app.prompts.extraction import build_extraction_messages
 
@@ -153,6 +154,7 @@ def _parse_signal_json(raw: str, source_text: str = "") -> list[dict[str, Any]]:
 async def extract_signals_from_text(
     text: str,
     source_ref: str,
+    session_id: str | None = None,
 ) -> tuple[list[Signal], bool, float]:
     """
     Run Gemma 3n E4B on redacted text, apply calibration, return signals.
@@ -168,12 +170,27 @@ async def extract_signals_from_text(
     messages = build_extraction_messages(redacted_text, source_ref)
 
     t0 = time.perf_counter()
-    response = _get_client().chat.completions.create(
-        model=settings.GEMMA_MODEL,
-        messages=messages,
-        temperature=0.1,       # Low temp for deterministic structured output
-        max_tokens=2048,
-    )
+    try:
+        response = _get_client().chat.completions.create(
+            model=settings.GEMMA_MODEL,
+            messages=messages,
+            temperature=0.1,       # Low temp for deterministic structured output
+            max_tokens=2048,
+        )
+    except Exception as exc:
+        prism.trace(
+            session_id=session_id or source_ref,
+            model=settings.GEMMA_MODEL,
+            input_summary="Classify this redacted intercepted communication for scam-intent signals: "
+                          f"<communication>{redacted_text[:400]}</communication>",
+            output_summary="Gemma extraction failed; no signals produced.",
+            latency_ms=(time.perf_counter() - t0) * 1000,
+            operation="execute_tool",
+            agent_name="gemma_signal_extractor",
+            error=str(exc),
+            metadata={"source_ref": source_ref, "degraded": True},
+        )
+        raise
     latency_ms = (time.perf_counter() - t0) * 1000
 
     raw_output = response.choices[0].message.content or ""
@@ -201,6 +218,23 @@ async def extract_signals_from_text(
         except Exception as exc:
             logger.warning("Dropping malformed signal: %s — %s", s, exc)
 
+    prism.trace(
+        session_id=session_id or source_ref,
+        model=settings.GEMMA_MODEL,
+        input_summary="Classify this redacted intercepted communication for scam-intent signals: "
+                      f"<communication>{redacted_text[:400]}</communication>",
+        output_summary=(
+            f"Detected {len(signals)} scam-intent signal(s): "
+            + ", ".join(
+                f"{getattr(s.signal_type, 'value', s.signal_type)} ({s.confidence:.2f})"
+                for s in signals
+            )
+        ),
+        latency_ms=latency_ms,
+        operation="execute_tool",
+        agent_name="gemma_signal_extractor",
+        metadata={"source_ref": source_ref, "signal_count": len(signals), "redaction_ran": redaction_ran},
+    )
     return signals, redaction_ran, latency_ms
 
 

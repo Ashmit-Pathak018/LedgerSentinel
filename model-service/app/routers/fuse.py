@@ -27,6 +27,7 @@ class RationaleRequest(BaseModel):
     """
     evidence: list[dict[str, Any]]
     source_ref: str = ""
+    session_id: str | None = None
 
 
 class RationaleResponse(BaseModel):
@@ -73,7 +74,9 @@ async def fuse_rationale(req: RationaleRequest) -> RationaleResponse:
     try:
         # synthesise_rationale accepts Signal[] — pass empty list if coercion failed
         # but evidence dicts were provided (Qwen will see an empty signal list)
-        rationale_text, latency_ms = await synthesise_rationale(signals)
+        rationale_text, latency_ms = await synthesise_rationale(
+            signals, session_id=req.session_id or req.source_ref or None
+        )
     except Exception as exc:
         logger.exception("Qwen rationale synthesis error: %s", exc)
         raise HTTPException(status_code=500, detail=f"Rationale synthesis error: {exc}")
